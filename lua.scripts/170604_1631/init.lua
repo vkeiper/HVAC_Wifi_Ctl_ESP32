@@ -63,9 +63,7 @@ tmr.alarm(1, 1000, 1, function()
                       gpio.write(aSSR[3][1], gpio.LOW);
                 end
              
-                TempValRaw = adc.read(0)  
-                TempDeg = (TempValRaw *100) / 29       
-                buf = buf .."<p>Temp sensor:  RAW- " ..TempValRaw .."&nbsp Scaled- " ..tostring(TempDeg/10) .." degC</p>";
+                buf = buf .."<p>Temp sensor:  RAW " ..an_ch0raw .."bits &nbsp Scaled " ..string.format("%2.2f",an_condtemp) .." degC</p>";
                 buf = buf .."<p>Node Heap: " ..node.heap() .."</p>";
                 print(node.heap())
              	
