@@ -1,0 +1,69 @@
+
+-- Ananlog temperature register for condensor temp
+an_condtemp =0
+an_ch0raw =0
+dofile("ptc10k.lc")
+--Create Timer to restore AC after warmup period, will be 15 minutes after debug
+local tmrFrost = tmr.create()
+-- register timer if not already reg'd
+tmrFrost:register(5000, tmr.ALARM_SINGLE, function() RestoreACMain() end)
+
+
+--method to toggle pins for SSR control
+function FrostCheck()
+  --last status for th pin passed in
+  an_ch0raw = adc.read(0)
+  --an_condtemp = an_ch0raw *(300/1023)
+  an_condtemp =  ProcessPtc(an_ch0raw)
+  print("ADC",adc.read(0),"bits", "Acoil Temp",string.format("%2.2f",an_condtemp),"degC",an_condtemp* 9/5 + 32, "degF")
+  --print(string.format("%2.2f",an_condtemp))
+  if an_condtemp <1  then
+    running, mode = tmrFrost:state()
+    print("running: " .. tostring(running) .. ", mode: " .. mode) -- running: false, mode: 0
+    --only start the timer once per frost session
+    if not running then
+        tmr.start(tmrFrost)
+        print("FROST EMINENT, SHUTDOWN ACPUMP & WAIT FOR WARMUP")
+        --shutdown AC main
+        gpio.write(aSSR[2][1],gpio.LOW)
+        print(aSSR[2][4],2," set LOW Cnt=",aSSR[2][3])
+        aSSR[2][2] = false
+        aSSR[2][3] = aSSR[2][3] + 1
+        --Turn on AC AUXFAN to accellerate melting ICE off condenser
+        gpio.write(aSSR[1][1],gpio.HIGH)
+        print(aSSR[1][4],1," set HIGH Cnt=",aSSR[1][3])
+        aSSR[1][2] = true
+        aSSR[1][3] = aSSR[1][3] + 1
+    end
+  else
+     print("NO FROST COND. NOMAL OP MODE")
+     tmr.stop(tmrFrost)
+  end
+end
+
+--method to restart the AC after warmup period
+function RestoreACMain()
+    if an_condtemp >5  then
+  
+        print("Frost Timer Fired- RESTORE ACMAIN")
+        gpio.write(aSSR[2][1],gpio.HIGH)
+        print(aSSR[2][4],pin," set HIGH Cnt=",aSSR[2][3])
+        aSSR[2][2] = true
+        --Ensure AC AUXFAN is ON to reduce chance of ICE on condenser
+        gpio.write(aSSR[1][1],gpio.HIGH)
+        print(aSSR[1][4],1," Keep HIGH Cnt=",aSSR[1][3])
+        aSSR[1][2] = true
+        aSSR[1][3] = aSSR[1][3] + 1
+        --stop firing
+        tmr.stop(tmrFrost)
+     else
+        print("CONDENSER <32 degC ReARM Timer")
+        --restart timer to reseed wait state 
+        tmr.start(tmrFrost)
+
+     end
+end
+
+--Execute Frost Check 
+FrostCheck()
+
