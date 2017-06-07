@@ -8,9 +8,12 @@ local tmrFrost = tmr.create()
 -- register timer if not already reg'd
 tmrFrost:register(5000, tmr.ALARM_SINGLE, function() RestoreACMain() end)
 
-
+local acmain_on = 0
+local tstat_dmd = false
+local frost_flt = false
 --method to toggle pins for SSR control
 function FrostCheck()
+  
   --last status for th pin passed in
   an_ch0raw = adc.read(0)
   --an_condtemp = an_ch0raw *(300/1023)
@@ -34,6 +37,8 @@ function FrostCheck()
         print(aSSR[1][4],1," set HIGH Cnt=",aSSR[1][3])
         aSSR[1][2] = true
         aSSR[1][3] = aSSR[1][3] + 1
+
+        frost_flt = true
     end
   else
      print("NO FROST COND. NOMAL OP MODE")
@@ -44,25 +49,67 @@ end
 --method to restart the AC after warmup period
 function RestoreACMain()
     if an_condtemp >5  then
-  
-        print("Frost Timer Fired- RESTORE ACMAIN")
-        gpio.write(aSSR[2][1],gpio.HIGH)
-        print(aSSR[2][4],pin," set HIGH Cnt=",aSSR[2][3])
-        aSSR[2][2] = true
-        --Ensure AC AUXFAN is ON to reduce chance of ICE on condenser
-        gpio.write(aSSR[1][1],gpio.HIGH)
-        print(aSSR[1][4],1," Keep HIGH Cnt=",aSSR[1][3])
-        aSSR[1][2] = true
-        aSSR[1][3] = aSSR[1][3] + 1
-        --stop firing
-        tmr.stop(tmrFrost)
-     else
+        frost_flt = false
+        if tstat_dmd then
+            print("Frost Timer Fired- RESTORE ACMAIN")
+            gpio.write(aSSR[2][1],gpio.HIGH)
+            print(aSSR[2][4],pin," set HIGH Cnt=",aSSR[2][3])
+            aSSR[2][2] = true
+            --Ensure AC AUXFAN is ON to reduce chance of ICE on condenser
+            gpio.write(aSSR[1][1],gpio.HIGH)
+            print(aSSR[1][4],1," Keep HIGH Cnt=",aSSR[1][3])
+            aSSR[1][2] = true
+            aSSR[1][3] = aSSR[1][3] + 1
+            --stop firing
+            tmr.stop(tmrFrost)
+        else
+            tmr.stop(tmrFrost)
+        end
+    else
         print("CONDENSER <32 degC ReARM Timer")
         --restart timer to reseed wait state 
         tmr.start(tmrFrost)
-
-     end
+    end
 end
+
+function TestTstat()
+    -- read stat demand for cool state
+    print("MAN",mn_auxfan,mn_acmain,"GPIO0 ",gpio.read(0),"FRST ", frost_flt)
+    if gpio.read(0) == 0 then tstat_dmd = true else tstat_dmd = false end
+
+    --Test if ACMAIN should be on
+    if mn_auxfan == true then 
+        gpio.write(aSSR[2][1],gpio.HIGH) 
+    else
+        if tstat_dmd == true and frost_flt == false then
+            print("TSTAT ON NOFAULTS")
+            gpio.write(aSSR[2][1],gpio.HIGH)
+        elseif tstat_dmd == false  or frost_flt == true then
+            print("TSTAT OFF --OR FROST FLT ")
+            gpio.write(aSSR[2][1],gpio.LOW)
+        end
+    end
+
+    --Test If AuxFan should be ON
+    if mn_acmain == true then 
+        gpio.write(aSSR[1][1],gpio.HIGH) 
+    else
+        if tstat_dmd == true and frost_flt == false then
+            print("TSTAT ON NOFAULTS")
+            gpio.write(aSSR[1][1],gpio.HIGH)
+        elseif tstat_dmd == false  or frost_flt == true then
+            print("TSTAT OFF --OR FROST FLT ")
+            gpio.write(aSSR[1][1],gpio.LOW)
+        end
+    end
+
+    
+    
+
+end
+
+--Test Tstat for demand for cooling
+TestTstat()
 
 --Execute Frost Check 
 FrostCheck()

@@ -7,7 +7,8 @@ local tmrFrostCheck = tmr.create()
 -- register timer if not already reg'd
 tmrFrostCheck:register(1000, tmr.ALARM_AUTO, function() dofile("ssrs_rules.lua") end)
 
-
+mn_auxfan = false
+mn_acmain = false
 print("Init Lua Version v0.0.3 20170604_1704_VK")
 wifi.setmode(wifi.STATION)
 --home network
@@ -55,13 +56,17 @@ tmr.alarm(1, 1000, 1, function()
                 buf = buf.."<p>SSR_ACBLOW <a href=\"?pin=ON3\"><button>ON</button></a>&nbsp;<a href=\"?pin=OFF3\"><button>OFF</button></a></p>";
                 local _on,_off = "",""
                 if(_GET.pin == "ON1")then
-                      gpio.write(aSSR[1][1], gpio.HIGH);
+                      --gpio.write(aSSR[1][1], gpio.HIGH);
+                      mn_auxfan = true
                 elseif(_GET.pin == "OFF1")then
-                      gpio.write(aSSR[1][1], gpio.LOW);
+                      --gpio.write(aSSR[1][1], gpio.LOW);
+                      mn_auxfan = false
                 elseif(_GET.pin == "ON2")then
-                      gpio.write(aSSR[2][1], gpio.HIGH);
+                      --gpio.write(aSSR[2][1], gpio.HIGH);
+                      mn_acmain = true
                 elseif(_GET.pin == "OFF2")then
-                      gpio.write(aSSR[2][1], gpio.LOW);
+                      --gpio.write(aSSR[2][1], gpio.LOW);
+                      mn_acmain = false
                 elseif(_GET.pin == "ON3")then
                       gpio.write(aSSR[3][1], gpio.LOW);
                 elseif(_GET.pin == "OFF3")then

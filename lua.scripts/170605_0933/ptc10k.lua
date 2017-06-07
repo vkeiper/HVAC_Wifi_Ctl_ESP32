@@ -25,7 +25,7 @@ function ProcessPtc(adc)
     for i=1,160,1 do
         scBits = ptcbits[i]
         if scBits < adc then 
-          return i-41
+          return i-40
         else
             if i >159 then
                 return 155
