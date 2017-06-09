@@ -1,2 +1,2 @@
-# HVAC_Wifi_Control
-Wireless control of a window AC using the ESP8266 devkit, SSR's and PTC temp sensors.
+# HVAC_Wifi_Ctl_ESP32
+Wireless control of a window AC using the ESP32 devkit, SSR's and PTC temp sensors.
