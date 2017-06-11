@@ -41,6 +41,7 @@ const char* password     = "fluffyvalley904";
 const char* httphdrstart = "HTTP/1.1 200 OK";
 const char* httphdrhtml  = "Content-Type: text/html";
 const char* httphdrxml   = "Content-Type: text/xml";
+const char* httphdrimg   = "ContentType=\"image/png";
 const char* httphdrkeep  = "Connection: keep-alive";
 char dbgstr[128];
 
@@ -200,15 +201,23 @@ void loop(){
                 // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
                  // and a content-type so the client knows what's coming, then a blank line
                  // send a standard http response header
-                 client.println(httphdrstart);
-                 Serial.println("[WEBPG] GET Logo, sending it");
-                // send logo .bmp file
+                 // send logo .bmp file
                 logo = SD.open("/atdilogo.bmp"); // open bmp file
                 if (logo) {
+                    client.println(httphdrstart);
+                    client.println(httphdrimg);
+                    client.println(httphdrkeep);
+                    client.println();
+                    Serial.println("[WEBPG] GET Logo, sending it");
                     while(logo.available()) {
                         client.write(logo.read()); // send logo to client
                     }
                     logo.close();
+                    Serial.println("[WEBPG] GET Logo, DONE");
+                    
+                }else{
+                  Serial.println("[WEBPG] Logo Not Found!!!");
+                  while(1);
                 }
             }
             //Respond to favico for chrome
