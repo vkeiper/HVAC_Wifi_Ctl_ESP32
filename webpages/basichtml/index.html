@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="description" content="Free Web tutorials">
+  <meta name="keywords" content="HTML,CSS,XML,JavaScript">
+<title>WiFi Linked HVAC Controller</title>
+
+	<script>
+        function GetXml()
+        {
+            nocache = "&nocache=" + Math.random() * 1000000;
+            var request = new XMLHttpRequest();
+            request.onreadystatechange = function()
+            {
+                if (this.readyState == 4) {
+                    if (this.status == 200) {
+                        if (this.responseXML != null) {
+                            // extract XML data from XML file (containing switch states and analog value)
+                            document.getElementById("dig1").innerHTML =
+                                this.responseXML.getElementsByTagName('dig_1')[0].childNodes[0].nodeValue;
+                            document.getElementById("dig2").innerHTML =
+                                this.responseXML.getElementsByTagName('dig_2')[0].childNodes[0].nodeValue;
+                            document.getElementById("an_1").innerHTML =
+                                this.responseXML.getElementsByTagName('anCh_1')[0].childNodes[0].nodeValue;
+                        }
+                    }
+                }
+            }
+            request.open("GET", "ajax_inputs" + nocache, true);
+            request.send(null);
+            setTimeout('GetXml()', 1000);
+        }
+    </script>
+</head>
+<body>
+
+<h1>MBR HVAC Web Server</h1>
+	<p>SSR_AUXFAN <a href="/ON_AUXFAN">-ON-</a> <a href="/OFF_AUXFAN">-OFF-</a><br></p>
+    <p>SSR_ACMAIN <a href="/ON_ACMAIN">-ON-</a> <a href="/OFF_ACMAIN">-OFF-</a><br></p>
+	<p>DigIn 1: <span id="dig_1">...</span>  </p>
+	<p>DigIn 2: <span id="dig_2">...</span>  </p>
+	<p>Analog 1: <span id="anCh_1">...</span>  </p>
+</body>
+</html>

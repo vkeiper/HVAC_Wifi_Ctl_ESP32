@@ -1,0 +1,197 @@
+window.onload = InitAll;
+
+function InitAll()
+{
+	OpenLinkInNewWindow();
+	if (typeof(initArdWS) == "function") {
+		initArdWS();
+	}
+	initAddApp();
+	initFund();					// close fundraiser box
+	RevolvingFundRaiser();	// revolve contributors list
+}
+
+function initFund() {
+	var fundButton = document.getElementById("fund_close");
+	if (fundButton == null) {return;}
+	var fundBox = document.getElementById("fund_raise");
+	if (fundBox == null) {return;}
+	fundButton.onclick = function() {fundBox.style.display = "none";};
+}
+
+
+thisFundRaiser = 0;
+
+function RevolvingFundRaiser()
+{
+	var contributorsText = document.getElementById("donations_received");
+	if (contributorsText == null) {return;}
+	var fundItems = new Array(
+	"Thanks B.R.H for your $20 donation",
+	"Thanks J.E. for your $10 donation",
+	"Thanks G.L. for your $20 donation",
+	"Thanks J.M. for your $10 donation",
+	"Thanks B.A. for your $8 donation",
+	"Thanks H.K. for your $20 donation",
+	"Thanks adm-designs.com for $20",
+	"Thanks bikedabs.com for $10",
+	"Thanks W.I. for your $10 donation",
+	"Thanks K.M. for your $10 donation",
+	"Thanks B.H. for your $10 donation",
+	"Thanks P.I. for your $10 donation",
+	"Thanks R.G. for your $10 donation",
+	"Thanks M.B. for your $5 donation",
+	"Thanks P.R. for your $10 donation",
+	"Thanks J.P. for your $10 donation",
+	"Thanks V.B. for your $10 donation",
+    "Thanks G.S. for your $10 donation",
+	"Thanks P.H. for your $10 donation",
+	"Thanks P.K. for your $5 donation",
+	"Thanks G.S. for your $5 donation",
+	"Thanks D.E. for your $5 donation",
+	"Thanks L.C. for your $5 donation",
+	"Thanks D.W. for your $10 donation",
+	"Thanks P.S. for your $10 donation",
+	"Thanks D.C. for your $30 donation",
+	"Thanks S.A.C. for your $10 donation",
+	"Thanks S.I.O. for your $1 donation",
+	"Thanks P.K. for your $5 donation",
+	"Thanks J.U. for your $20 donation",
+	"Thanks S.S. for your $8 donation",
+	"Thanks J.E. for your $3 donation",
+	"Thanks I.O. for your $20 donation",
+	"Thanks C.B. for your $5 donation",
+	"Thanks P.M. for your $2 donation",
+	"Thanks D.S. for your $10 donation",
+	"Thanks E.G.B. for your $5 donation",
+	"Thanks N.M. for your $1 donation",
+	"Thanks R.G. for your $3 donation",
+	"Thanks R.H. for your $5 donation",
+	"Thanks P.N. for your $5 donation",
+	"Thanks T.B. for your $3 donation",
+	"Thanks P.J. for your $10 donation",
+	"Thanks C.L.S. for your $2 donation",
+	"Thanks S.B. for your $5 donation",
+	"Thanks M.A.M.R for your $5 donation",
+	"Thanks L.M. for your $5 donation",
+	"Thanks W.S. for your $1 donation",
+	" Donations Received");
+
+	contributorsText.innerHTML = fundItems[thisFundRaiser];
+	setTimeout(RevolvingFundRaiser, 3 * 1000);
+	thisFundRaiser++;
+	if (thisFundRaiser == fundItems.length) {
+		thisFundRaiser = 0;
+	}
+}
+
+
+function initAddApp() {
+	if (document.getElementsByClassName("ad_tab1") == null) { return; }
+	var tabClicks1 = document.getElementsByClassName("ad_tab1");
+	var count = 0;
+	for (var i = 0, count = tabClicks1.length; i < count; i++) {
+		tabClicks1[i].onclick = tabClick1;
+	}
+	var tabClicks2 = document.getElementsByClassName("ad_tab2");
+	for (var i = 0, count = tabClicks2.length; i < count; i++) {
+		tabClicks2[i].onclick = tabClick2;
+	}
+	var userLang = navigator.language || navigator.userLanguage;
+	
+	if (storageAvailable('localStorage')) {
+		var storageVal = localStorage.getItem("ad_lang_set");
+	
+		if (storageVal != null) {
+			if (storageVal == "enGB") {
+				userLang = "en-GB";
+			}
+			else {
+				userLang = "en-US";
+			}
+		}
+	}
+	if (userLang == "en-GB") {
+		var adBody1 = document.getElementsByClassName("ad_body1");
+		for (var i = 0, count = adBody1.length; i < count; i++) {
+			adBody1[i].style.display = "none";
+		}
+	}
+	else {
+		var adBody2 = document.getElementsByClassName("ad_body2");
+		for (var i = 0, count = adBody2.length; i < count; i++) {
+			adBody2[i].style.display = "none";
+		}
+	}
+}
+
+function tabClick1() {
+	var ad_body1 = document.getElementsByClassName("ad_body1");
+	var ad_body2 = document.getElementsByClassName("ad_body2");
+	var count = 0;
+	
+	for (var i = 0, count = ad_body1.length; i < count; i++) {
+		ad_body1[i].style.display = "block";
+		ad_body2[i].style.display = "none";
+	}
+	
+	if (storageAvailable('localStorage')) {
+		localStorage.setItem("ad_lang_set", "enUS");
+	}
+}
+
+function tabClick2() {
+	var ad_body1 = document.getElementsByClassName("ad_body1");
+	var ad_body2 = document.getElementsByClassName("ad_body2");
+	var count = 0;
+	
+	for (var i = 0, count = ad_body1.length; i < count; i++) {
+		ad_body1[i].style.display = "none";
+		ad_body2[i].style.display = "block";
+	}
+	
+	if (storageAvailable('localStorage')) {
+		localStorage.setItem("ad_lang_set", "enGB");
+	}
+}
+
+// https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API/Using_the_Web_Storage_API
+function storageAvailable(type) {
+	try {
+		var storage = window[type],
+			x = '__storage_test__';
+		storage.setItem(x, x);
+		storage.removeItem(x);
+		return true;
+	}
+	catch(e) {
+		return false;
+	}
+}
+
+/* links with the class name "targetblank" will be opened in  a new window */
+function OpenLinkInNewWindow()
+{
+	// Code if document.getElementByClassName() doesn't exist
+	if (document.getElementsByClassName == undefined) {
+		document.getElementsByClassName = function(className) {
+			var hasClassName = new RegExp("(?:^|\\s)" + className + "(?:$|\\s)");
+			var allElements = document.getElementsByTagName("*");
+			var results = [];
+
+			var element;
+			for (var i = 0; (element = allElements[i]) != null; i++) {
+				var elementClass = element.className;
+				if (elementClass && elementClass.indexOf(className) != -1 && hasClassName.test(elementClass)) {
+					results.push(element);
+				}
+			}
+			return results;
+		}
+	}
+
+	var anchorList = document.getElementsByClassName('targetblank');
+	for (var i in anchorList) {
+		anchorList[i].target = '_blank';
+	}
+}

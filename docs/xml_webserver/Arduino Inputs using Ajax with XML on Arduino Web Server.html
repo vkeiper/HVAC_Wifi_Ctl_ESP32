@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<!-- saved from url=(0114)https://startingelectronics.org/tutorials/arduino/ethernet-shield-web-server-tutorial/SD-card-AJAX-XML-web-server/ -->
+<html lang="en" class="cye-disabled cye-nm"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<meta name="description" content="The Arduino web server displays the status of switches and an analog (analogue) input on a web page. The updates are performed using Ajax with an XML file. JavaScript responseXML is used instead of responseText to get data from the XML file.">
+		<meta name="keywords" content="Arduino, Ethernet, web, XML, Ajax, JavaScript, inputs, analog, analogue">
+		<meta name="author" content="(c) 2017, W.A. Smith">
+		<title>Arduino Inputs using Ajax with XML on Arduino Web Server</title>
+		<link rel="stylesheet" href="./Arduino Inputs using Ajax with XML on Arduino Web Server_files/global.css">
+		<link rel="stylesheet" href="./Arduino Inputs using Ajax with XML on Arduino Web Server_files/codestyles.css">
+		<link rel="icon" type="image/x-icon" href="https://startingelectronics.org/favicon.ico">
+		<!--<script src="/templates/template2/global.js"></script>-->
+		<!-- google analytics code -->
+		<script async="" src="./Arduino Inputs using Ajax with XML on Arduino Web Server_files/analytics.js.download"></script><script>
+		  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+		  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+		  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+		  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+		  ga('create', 'UA-58619882-1', 'auto');
+		  ga('send', 'pageview');
+		</script><style id="nightModeStyle">
+html.cye-enabled.cye-nm:not(*:-webkit-full-screen) body,
+ html.cye-enabled.cye-nm:not(*:-webkit-full-screen) #cye-workaround-body {-webkit-filter:contrast(91%) brightness(84%) invert(1);}</style><style id="cyebody">html.cye-enabled.cye-lm body{background-color:#D0D9BA !important;border-color:rgb(52, 54, 46) !important;color:#000000  !important}</style><style id="cyediv">html.cye-enabled.cye-lm div{background-color:#D0D9BA !important;border-color:rgb(52, 54, 46) !important;color:#000000  !important}</style><style id="cyetable">html.cye-enabled.cye-lm th{background-color:#D0D9BA !important;border-color:rgb(52, 54, 46) !important;color:#000000  !important}html.cye-enabled.cye-lm td{background-color:#D0D9BA !important;border-color:rgb(52, 54, 46) !important;color:#000000  !important}</style><style id="cyetextInput">html.cye-enabled.cye-lm input[type=text]{background-color:#D0D9BA !important;border-color:rgb(52, 54, 46) !important;color:#000000  !important}html.cye-enabled.cye-lm textarea{background-color:#D0D9BA !important;border-color:rgb(52, 54, 46) !important;color:#000000  !important}</style><style id="cyeselect">html.cye-enabled.cye-lm select{background-color:#D0D9BA !important;border-color:rgb(52, 54, 46) !important;color:#000000  !important}</style><style id="cyeul">html.cye-enabled.cye-lm ul{background-color:#D0D9BA !important;border-color:rgb(52, 54, 46) !important;color:#000000  !important}</style><style id="cyea">html.cye-enabled.cye-lm a{background-color:#D0D9BA !important;border-color:rgb(52, 54, 46) !important;color:#000000  !important}</style><style id="cyeChangeByClick">html.cye-enabled.cye-lm .cye-lm-tag,html.cye-enabled.cye-lm.cye-lm-tag{background-color:#D0D9BA !important;border-color:rgb(52, 54, 46) !important;color:#000000  !important}</style>
+		<!-- end google code -->
+			<script src="./Arduino Inputs using Ajax with XML on Arduino Web Server_files/embed.js.download" data-timestamp="1497071731287"></script><link rel="preload" as="style" href="https://c.disquscdn.com/next/embed/styles/lounge.a219a5731bfdc6a1d16fa492c1ac36e9.css"><link rel="preload" as="script" href="https://c.disquscdn.com/next/embed/common.bundle.90517cf61c3519992d816707359eb2b0.js"><link rel="preload" as="script" href="https://c.disquscdn.com/next/embed/lounge.bundle.8c32c0323ca65ff6ea4555f4c1c9838e.js"><link rel="preload" as="script" href="https://disqus.com/next/config.js"></head><div id="cyeBlackMaskLayer" style="background-color: rgb(19, 19, 19); position: fixed; width: 1980px; height: 1080px; z-index: -2147483648;"></div>
+
+	<body>
+		
+		<!-- mobile page level ads -->
+		<script async="" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+		<script>
+		  (adsbygoogle = window.adsbygoogle || []).push({
+			google_ad_client: "ca-pub-1311998530216395",
+			enable_page_level_ads: true
+		  });
+		</script>
+		
+		<div id="page">
+			
+			<div id="fund_raise">
+				<div class="fund_l">
+					<p><b>Starting Electronics Needs Your Help!</b><br>It is that time of the year when we need to pay for web hosting and buy new components and equipment for new tutorials. You can help by making a donation.
+					Contribute to this website by clicking the <b>Donate</b> button. The total will be updated once daily. (You may need to clear your browser cache to see the updates.)</p>
+				</div>
+				<div class="fund_m">
+					<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
+<input type="hidden" name="cmd" value="_s-xclick">
+<input type="hidden" name="hosted_button_id" value="ZENNAW6UH584C">
+<input type="image" src="./Arduino Inputs using Ajax with XML on Arduino Web Server_files/btn_donateCC_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
+<img alt="" border="0" src="./Arduino Inputs using Ajax with XML on Arduino Web Server_files/pixel.gif" width="1" height="1">
+</form>
+				</div>
+				<div class="fund_r">
+					<p><b>Target Amount: $2000</b><br>
+					   <b>Amount Raised: $427</b></p>
+					<p id="donations_received">Thanks B.H. for your $10 donation</p>
+					<p><b>Top Donor: D.C. $30</b></p>
+				</div>
+				<div id="fund_close">
+					<p>X</p>
+				</div>
+				<div class="clr_flt"></div>
+			</div>
+			
+		<div id="menuContainer">
+			<ul id="mainNav">
+								<li><a href="https://startingelectronics.org/">Home</a></li>
+				<li><a href="https://startingelectronics.org/beginners/">Beginners</a></li>
+				<li><a href="https://startingelectronics.org/projects/">Projects</a></li>
+				<li><a href="https://startingelectronics.org/tutorials/">Tutorials</a></li>
+				<li><a href="https://startingelectronics.org/articles/">Articles</a></li>
+				<li><a href="https://startingelectronics.org/reviews/">Reviews</a></li>
+				<li><a href="https://startingelectronics.org/software/">Software</a></li>
+				<!--<li><a href="">More...</a></li>-->
+				<!--<li><a  href="/tools">Tools</a></li>-->
+				<!--<li><a  href="/components">Components</a></li>-->
+			</ul>
+			<div id="sitesearch">
+				<!-- added # below to make HTML5 validator happy, check if search still works -->
+				<form action="https://startingelectronics.org/tutorials/arduino/ethernet-shield-web-server-tutorial/SD-card-AJAX-XML-web-server/#" method="get">
+					<p>
+						<input type="text" name="q" value="Search..." size="22" onfocus="javascript: if(this.value == &#39;Search...&#39;){ this.value = &#39;&#39;; }" onblur="javascript: if(this.value==&#39;&#39;){this.value=&#39;Search...&#39;;}">
+					</p>
+				</form>
+			</div>
+		</div>
+		<div id="header">
+			<p><a href="https://startingelectronics.org/"><img src="./Arduino Inputs using Ajax with XML on Arduino Web Server_files/logo.png" alt="Starting Electronics, Electronics for beginners, hobbyists and beyond" width="550" height="90"></a></p>
+
+			<div class="social_media">
+				<ul>
+					<li class="sm_fb"><a href="http://www.facebook.com/startingelectronics" class="targetblank" target="_blank">Facebook</a></li>
+					<li class="sm_gp"><a href="https://plus.google.com/+startingelectronics" class="targetblank" target="_blank">Google+</a></li>
+					<li class="sm_tw"><a href="https://twitter.com/StartingElectro" class="targetblank" target="_blank">Twitter</a></li>
+					<!--<li class="sm_bl"><a href="/blog/" class="targetblank">Blog</a></li>-->
+					<li class="sm_bl"><a href="http://blog.startingelectronics.com/" class="targetblank" target="_blank">Blog</a></li>
+					<li class="sm_yt"><a href="http://www.youtube.com/startingelectronics" class="targetblank" target="_blank">YouTube</a></li>
+					<li class="sm_am"><a href="http://astore.amazon.com/startielectr-20" class="targetblank" target="_blank">amazon.com aStore</a></li>
+					<li class="sm_do"><a href="https://startingelectronics.org/site/donate/">Donate</a></li>
+				</ul>
+			</div>
+		</div>
+		<div id="page_body">
+		<p class="breadcrumb">	<a href="https://startingelectronics.org/">Home</a>
+				<img src="./Arduino Inputs using Ajax with XML on Arduino Web Server_files/arrow.png" alt="→"><a href="https://startingelectronics.org/tutorials/"> Tutorials</a>
+					<img src="./Arduino Inputs using Ajax with XML on Arduino Web Server_files/arrow.png" alt="→"><a href="https://startingelectronics.org/tutorials/arduino/"> Arduino</a>
+					<img src="./Arduino Inputs using Ajax with XML on Arduino Web Server_files/arrow.png" alt="→"><a href="https://startingelectronics.org/tutorials/arduino/ethernet-shield-web-server-tutorial/"> Ethernet Shield Web Server Tutorial</a>
+					<img src="./Arduino Inputs using Ajax with XML on Arduino Web Server_files/arrow.png" alt="→"> SD Card AJAX XML Web Server		</p>
+		<!-- <div id="page"> -->
+			<!--<div id="r_col">
+							</div>-->
+
+<div id="tutorial">
+	<h1>Arduino Inputs using Ajax with XML on the Arduino Web Server</h1>
+	<p id="page_date">Created on: 27 March 2013</p>
+	<p><strong>Part 14 of the Arduino Ethernet Shield Web Server Tutorial</strong></p>
+			<div class="google_top_ad">
+		<script async="" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+		<!-- top_responsive -->
+		<ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-1311998530216395" data-ad-slot="7918861327" data-ad-format="auto"></ins>
+		<script>
+		(adsbygoogle = window.adsbygoogle || []).push({});
+		</script>
+		<div class="clr_flt"></div>
+		</div>
+	<p>The Arduino web server hosts a web page (stored on the SD card) that displays the status of two push button switches and an analog (analogue) input.</p>
+	<p>The status of the two switches and the analog input are updated on the web page using Ajax. An XML file containing the switch statuses and the analog value is sent from the Arduino to the web browser.</p>
+	<p>This example produces the same output on the web page (with only the text changed) as <a href="https://startingelectronics.org/tutorials/arduino/ethernet-shield-web-server-tutorial/AJAX-read-switches-analog" class="targetblank" target="_blank">part 9 of this tutorial – Analog Inputs and Switches using AJAX</a>, with the following changes:</p>
+	<br>
+	<ul>
+		<li>Switch statuses and an analog value are sent in an XML file and not as a block of HTML.</li>
+		<li>JavaScript responseXML is used instead of responseText to get the received values from the Arduino out of the XML file.</li>
+		<li>The values from the XML file (Arduino inputs) are inserted into HTML paragraphs in the web page instead of replacing the entire paragraph.</li>
+		<li>The web page is stored on the micro SD card of the Ethernet shield.</li>
+	</ul>
+	<p><b>Why use Ajax with XML?</b></p>
+	<p>The advantage of using Ajax with an XML file is that individual values can easily be extracted by JavaScript on the web page, rather than having to write JavaScript code to extract values from a text file.</p>
+	<h2>XML File Structure</h2>
+	<p>An XML file uses tags like HTML or XHTML. The file has an initial tag that identifies it as an XML file. A main user defined tag follows that contains all other tags for the file.</p>
+	<p>This listing shows the structure of the XML file used in this example:</p>
+<pre class="code">&lt;?xml version = "1.0" ?&gt;
+&lt;inputs&gt;
+    &lt;button1&gt;&lt;/button1&gt;
+    &lt;button2&gt;&lt;/button2&gt;
+    &lt;analog1&gt;&lt;/analog1&gt;
+&lt;/inputs&gt;
+</pre>
+	<p>The <b>inputs</b> tag and all other tags contained in it are user defined names. The above XML could also be created as follows:</p>
+<pre class="code">&lt;?xml version = "1.0" ?&gt;
+&lt;inputs&gt;
+    &lt;button&gt;&lt;/button&gt;
+    &lt;button&gt;&lt;/button&gt;
+    &lt;analog&gt;&lt;/analog&gt;
+&lt;/inputs&gt;
+</pre>
+	<p>This file shows a button type and analog type that can be used to contain any button state or analog value. By adding more &lt;button&gt; or more &lt;analog&gt; tags, the state of additional buttons or analog inputs can be added.</p>
+	<p>The difference between the above two files is that the first uses unique names for all tags, whereas the second uses the tags to identify an input type.</p>
+	<h3>Arduino XML File</h3>
+	<p>In this example the Arduino creates an XML file and inserts the status of the switches and the analog input between the tags. The XML file is sent to the web browser in response to an Ajax request for data.</p>
+	<p>The image below shows an example of the XML file sent from the Arduino.</p>
+	<img src="./Arduino Inputs using Ajax with XML on Arduino Web Server_files/xml-file.jpg" alt="XML file sent by the Arduino" width="223" height="109">
+	<p class="pic_caption">XML File Sent by Arduino</p>
+	
+	<h2>How Ajax with XML Works</h2>
+	<p>If you have been following each part of this tutorial, then a lot of this will look familiar.</p>
+	<p>To update the Arduino input values on the web page, the following must occur:</p>
+	<h3>1. Requesting a web page</h3>
+	<p>As usual, the web browser is used to access the Arduino web server at the IP address that it has been set at in the Arduino sketch.</p>
+	<img src="./Arduino Inputs using Ajax with XML on Arduino Web Server_files/connecting-to-arduino-web-server.jpg" alt="Connecting to the Arduino web server from a web browser" width="343" height="133">
+	<p class="pic_caption">Connecting to the Arduino Web Server</p>
+	<p>This causes the web browser to sent an HTTP request:</p>
+<pre class="code">GET / HTTP/1.1
+Host: 10.0.0.20
+User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:19.0) Gecko/20100101 Firefox/19.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: en-ZA,en-GB;q=0.8,en-US;q=0.5,en;q=0.3
+Accept-Encoding: gzip, deflate
+Connection: keep-alive
+
+</pre>
+	<h3>2. Sending the web page</h3>
+	<p>The Arduino web server receives the above request and responds with an HTTP header followed by the web page:</p>
+<pre class="code">HTTP/1.1 200 OK
+Content-Type: text/html
+Connection: keep-alive
+
+</pre>
+	<img src="./Arduino Inputs using Ajax with XML on Arduino Web Server_files/web-page-s.jpg" alt="Arduino web page with JavaScript for Ajax" width="700" height="523">
+	<p>The Arduino reads the web page from the SD card and sends it to the web browser. After receiving the web page, it will be displayed in the web browser.</p>
+	<p>The web page contains JavaScript that is used as part of the Ajax process.</p>
+	<p>Note that the content type in the HTTP header for the HTML web page is text/html.</p>
+	<h3>3. Ajax request</h3>
+	<p>The JavaScript code on the web page sends an Ajax request to the Arduino (and continues to send a request every second).</p>
+<pre class="code">GET /ajax_inputs&amp;nocache=299105.2747379479 HTTP/1.1
+Host: 10.0.0.20
+User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:19.0) Gecko/20100101 Firefox/19.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: en-ZA,en-GB;q=0.8,en-US;q=0.5,en;q=0.3
+Accept-Encoding: gzip
+</pre>
+	<h3>4. The Arduino responds to the Ajax request</h3>
+	<p>After receiving the request for the XML file, the Arduino responds with an HTTP header followed by the XML file which contains input values from the Arduino.</p>
+<pre class="code">HTTP/1.1 200 OK
+Content-Type: text/xml
+Connection: keep-alive
+
+</pre>
+	<img src="./Arduino Inputs using Ajax with XML on Arduino Web Server_files/xml-file.jpg" alt="XML file from Arduino" width="223" height="109">
+	<p>Note that the content type in the HTTP header is now text/xml.</p>
+	<h3>5. Displaying the data</h3>
+	<p>Finally the JavaScript in the web page extracts the three values from the Arduino from the XML file and displays them on the web page.</p>
+	
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+			<div class="clr_flt"></div>
+		<div class="ad_container">
+			<div class="ad_tab1">
+				<p>Amazon.com</p>
+			</div>
+			<div class="ad_tab2">
+				<p>Amazon.co.uk</p>
+			</div>
+			<div class="ad_body1">
+		<iframe style="width: 120px; height: 240px; display: none !important;" marginwidth="0" marginheight="0" scrolling="no" frameborder="0" src="./Arduino Inputs using Ajax with XML on Arduino Web Server_files/q.html"></iframe>
+	<iframe style="width: 120px; height: 240px; display: none !important;" marginwidth="0" marginheight="0" scrolling="no" frameborder="0" src="./Arduino Inputs using Ajax with XML on Arduino Web Server_files/q(1).html"></iframe>
+	<iframe style="width: 120px; height: 240px; display: none !important;" marginwidth="0" marginheight="0" scrolling="no" frameborder="0" src="./Arduino Inputs using Ajax with XML on Arduino Web Server_files/q(2).html"></iframe>
+	<iframe style="width: 120px; height: 240px; display: none !important;" marginwidth="0" marginheight="0" scrolling="no" frameborder="0" src="./Arduino Inputs using Ajax with XML on Arduino Web Server_files/q(3).html"></iframe>
+	<iframe style="width: 120px; height: 240px; display: none !important;" marginwidth="0" marginheight="0" scrolling="no" frameborder="0" src="./Arduino Inputs using Ajax with XML on Arduino Web Server_files/q(4).html"></iframe>
+				</div>
+			<div class="ad_body2" style="display: none;">
+		<iframe style="width: 120px; height: 240px; display: none !important;" marginwidth="0" marginheight="0" scrolling="no" frameborder="0" src="./Arduino Inputs using Ajax with XML on Arduino Web Server_files/q(5).html"></iframe>
+	<iframe style="width: 120px; height: 240px; display: none !important;" marginwidth="0" marginheight="0" scrolling="no" frameborder="0" src="./Arduino Inputs using Ajax with XML on Arduino Web Server_files/q(6).html"></iframe>
+	<iframe style="width: 120px; height: 240px; display: none !important;" marginwidth="0" marginheight="0" scrolling="no" frameborder="0" src="./Arduino Inputs using Ajax with XML on Arduino Web Server_files/q(7).html"></iframe>
+	<iframe style="width: 120px; height: 240px; display: none !important;" marginwidth="0" marginheight="0" scrolling="no" frameborder="0" src="./Arduino Inputs using Ajax with XML on Arduino Web Server_files/q(8).html"></iframe>
+	<iframe style="width: 120px; height: 240px; display: none !important;" marginwidth="0" marginheight="0" scrolling="no" frameborder="0" src="./Arduino Inputs using Ajax with XML on Arduino Web Server_files/q(9).html"></iframe>
+				</div>
+			<div class="clr_flt"></div>
+		</div>
+		
+	<h2>Arduino Sketch and Web Page</h2>
+	<h3>Web Page</h3>
+	<p>The Arduino hosts the following web page on the SD card:</p>
+	<a href="https://startingelectronics.org/tutorials/arduino/ethernet-shield-web-server-tutorial/SD-card-AJAX-XML-web-server/web-page.jpg" class="targetblank" target="_blank"><img src="./Arduino Inputs using Ajax with XML on Arduino Web Server_files/web-page-s.jpg" alt="Arduino web page HTML and JavaScript code" width="700" height="523"></a>
+	<p class="pic_caption">Arduino Web Page index.htm - click for a bigger image</p>
+	<p>This is basically the same web page as sent by the Arduino in <a href="https://startingelectronics.org/tutorials/arduino/ethernet-shield-web-server-tutorial/AJAX-read-switches-analog" class="targetblank" target="_blank">part 9</a> of this tutorial, but with the following changes (besides the text changes):</p>
+	<h4>Function</h4>
+	<p>The JavaScript function in the web page has been renamed to GetArduinoInputs().</p>
+	<p>The function still sends out an Ajax request every second. It now sends ajax_inputs with the GET request.</p>
+	<p>Because an XML file is being sent back from the Arduino, the function now checks if responseXML contains data instead of responseText:</p>
+<pre class="code">if (this.responseXML != null) {
+</pre>
+	<p>The data is extracted from the received XML as explained shortly.</p>
+	<h4>HTML</h4>
+	<p>The HTML is modified to display three paragraphs of text, one each for each value sent from the Arduino. Each paragraph contains an HTML span, each span has a unique ID.</p>
+	<p>The JavaScript function will insert the extracted values from the XML file into each span. This will replace only the default text (...) in each paragraph with the value from the Arduino.</p>
+	<p>The function uses the following code to get hold of each span for inserting data (code for getting "input1" shown here):</p>
+<pre class="code">document.getElementById("input1").innerHTML =
+</pre>
+	<h4>Extracting the XML Data</h4>
+	<p>The XML data is extracted from the received XML file using the following line of code:</p>
+<pre class="code">this.responseXML.getElementsByTagName('button1')[0].childNodes[0].nodeValue;
+</pre>
+	<p>In this code, this.responseXML is used instead of this.responseText as used in previous examples.</p>
+	<p>Now every tag in the XML can be accessed using this.responseXML.getElementsByTagName('button1') as can be seen in the JavaScript function.</p>
+	<p>If you refer back to the top of this part of the tutorial under XML File Structure, and the second XML file example, you will see that there can be tags with the same name. If we used this for the button tags, then each button tag value can be accessed as follows:</p>
+<pre class="code">this.responseXML.getElementsByTagName('button')[0].childNodes[0].nodeValue;
+this.responseXML.getElementsByTagName('button')[1].childNodes[0].nodeValue;
+</pre>
+	<p>This is usefull if there were a number of buttons that you did not want to give unique tags to. The values can then also be accessed in the JavaScript by using a loop.</p>
+	<p>The button values will then be extracted in the order that they have been inserted into the file.</p>
+	<p>The number of buttons in the XML file can then be obtained by using:</p>
+<pre class="code">this.responseXML.getElementsByTagName('button').length
+</pre>
+	
+	<h3>Arduino Sketch</h3>
+	<p>The Arduino sketch for this example is shown below.</p>
+
+<pre class="code">/*--------------------------------------------------------------
+  Program:      eth_websrv_SD_Ajax_XML
+
+  Description:  Arduino web server that serves up a web page
+                that displays the status of two switches and
+                one analog input.
+                The web page is stored on the SD card.
+                The web page contains JavaScript code that uses
+                Ajax and XML to get the states of the switches
+                and value of the analog input.
+  
+  Hardware:     Arduino Uno and official Arduino Ethernet
+                shield. Should work with other Arduinos and
+                compatible Ethernet shields.
+                2Gb micro SD card formatted FAT16.
+                Push button switches interfaced to pin 7 and 8
+                of the Arduino. Potentiometer interfaced to A2
+                analog input.
+                
+  Software:     Developed using Arduino 1.0.5 software
+                Should be compatible with Arduino 1.0 +
+                SD card contains web page called index.htm
+  
+  References:   - WebServer example by David A. Mellis and 
+                  modified by Tom Igoe
+                - SD card examples by David A. Mellis and
+                  Tom Igoe
+                - Ethernet library documentation:
+                  http://arduino.cc/en/Reference/Ethernet
+                - SD Card library documentation:
+                  http://arduino.cc/en/Reference/SD
+
+  Date:         27 March 2013
+  Modified:     17 June 2013
+                - removed the use of the String class
+ 
+  Author:       W.A. Smith, http://startingelectronics.org
+--------------------------------------------------------------*/
+
+#include &lt;SPI.h&gt;
+#include &lt;Ethernet.h&gt;
+#include &lt;SD.h&gt;
+
+// size of buffer used to capture HTTP requests
+#define REQ_BUF_SZ   50
+
+// MAC address from Ethernet shield sticker under board
+byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
+IPAddress ip(192, 168, 0, 20); // IP address, may need to change depending on network
+EthernetServer server(80);  // create a server at port 80
+File webFile;               // the web page file on the SD card
+char HTTP_req[REQ_BUF_SZ] = {0}; // buffered HTTP request stored as null terminated string
+char req_index = 0;              // index into HTTP_req buffer
+
+void setup()
+{
+    // disable Ethernet chip
+    pinMode(10, OUTPUT);
+    digitalWrite(10, HIGH);
+    
+    Serial.begin(9600);       // for debugging
+    
+    // initialize SD card
+    Serial.println("Initializing SD card...");
+    if (!SD.begin(4)) {
+        Serial.println("ERROR - SD card initialization failed!");
+        return;    // init failed
+    }
+    Serial.println("SUCCESS - SD card initialized.");
+    // check for index.htm file
+    if (!SD.exists("index.htm")) {
+        Serial.println("ERROR - Can't find index.htm file!");
+        return;  // can't find index file
+    }
+    Serial.println("SUCCESS - Found index.htm file.");
+    pinMode(7, INPUT);        // switch is attached to Arduino pin 7
+    pinMode(8, INPUT);        // switch is attached to Arduino pin 8
+    
+    Ethernet.begin(mac, ip);  // initialize Ethernet device
+    server.begin();           // start to listen for clients
+}
+
+void loop()
+{
+    EthernetClient client = server.available();  // try to get client
+
+    if (client) {  // got client?
+        boolean currentLineIsBlank = true;
+        while (client.connected()) {
+            if (client.available()) {   // client data available to read
+                char c = client.read(); // read 1 byte (character) from client
+                // buffer first part of HTTP request in HTTP_req array (string)
+                // leave last element in array as 0 to null terminate string (REQ_BUF_SZ - 1)
+                if (req_index &lt; (REQ_BUF_SZ - 1)) {
+                    HTTP_req[req_index] = c;          // save HTTP request character
+                    req_index++;
+                }
+                // last line of client request is blank and ends with \n
+                // respond to client only after last line received
+                if (c == '\n' &amp;&amp; currentLineIsBlank) {
+                    // send a standard http response header
+                    client.println("HTTP/1.1 200 OK");
+                    // remainder of header follows below, depending on if
+                    // web page or XML page is requested
+                    // Ajax request - send XML file
+                    if (StrContains(HTTP_req, "ajax_inputs")) {
+                        // send rest of HTTP header
+                        client.println("Content-Type: text/xml");
+                        client.println("Connection: keep-alive");
+                        client.println();
+                        // send XML file containing input states
+                        XML_response(client);
+                    }
+                    else {  // web page request
+                        // send rest of HTTP header
+                        client.println("Content-Type: text/html");
+                        client.println("Connection: keep-alive");
+                        client.println();
+                        // send web page
+                        webFile = SD.open("index.htm");        // open web page file
+                        if (webFile) {
+                            while(webFile.available()) {
+                                client.write(webFile.read()); // send web page to client
+                            }
+                            webFile.close();
+                        }
+                    }
+                    // display received HTTP request on serial port
+                    Serial.print(HTTP_req);
+                    // reset buffer index and all buffer elements to 0
+                    req_index = 0;
+                    StrClear(HTTP_req, REQ_BUF_SZ);
+                    break;
+                }
+                // every line of text received from the client ends with \r\n
+                if (c == '\n') {
+                    // last character on line of received text
+                    // starting new line with next character read
+                    currentLineIsBlank = true;
+                } 
+                else if (c != '\r') {
+                    // a text character was received from client
+                    currentLineIsBlank = false;
+                }
+            } // end if (client.available())
+        } // end while (client.connected())
+        delay(1);      // give the web browser time to receive the data
+        client.stop(); // close the connection
+    } // end if (client)
+}
+
+// send the XML file with switch statuses and analog value
+void XML_response(EthernetClient cl)
+{
+    int analog_val;
+    
+    cl.print("&lt;?xml version = \"1.0\" ?&gt;");
+    cl.print("&lt;inputs&gt;");
+    cl.print("&lt;button1&gt;");
+    if (digitalRead(7)) {
+        cl.print("ON");
+    }
+    else {
+        cl.print("OFF");
+    }
+    cl.print("&lt;/button1&gt;");
+    cl.print("&lt;button2&gt;");
+    if (digitalRead(8)) {
+        cl.print("ON");
+    }
+    else {
+        cl.print("OFF");
+    }
+    cl.print("&lt;/button2&gt;");
+    // read analog pin A2
+    analog_val = analogRead(2);
+    cl.print("&lt;analog1&gt;");
+    cl.print(analog_val);
+    cl.print("&lt;/analog1&gt;");
+    cl.print("&lt;/inputs&gt;");
+}
+
+// sets every element of str to 0 (clears array)
+void StrClear(char *str, char length)
+{
+    for (int i = 0; i &lt; length; i++) {
+        str[i] = 0;
+    }
+}
+
+// searches for the string sfind in the string str
+// returns 1 if string found
+// returns 0 if string not found
+char StrContains(char *str, char *sfind)
+{
+    char found = 0;
+    char index = 0;
+    char len;
+
+    len = strlen(str);
+    
+    if (strlen(sfind) &gt; len) {
+        return 0;
+    }
+    while (index &lt; len) {
+        if (str[index] == sfind[found]) {
+            found++;
+            if (strlen(sfind) == found) {
+                return 1;
+            }
+        }
+        else {
+            found = 0;
+        }
+        index++;
+    }
+
+    return 0;
+}
+</pre>
+
+	<p>This sketch is basically a modified version of the sketch from the <a href="https://startingelectronics.org/tutorials/arduino/ethernet-shield-web-server-tutorial/SD-card-AJAX-web-server" class="targetblank" target="_blank">previous part of this tutorial</a>.</p>
+	
+			<br><br>
+		<script async="" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+		<!-- link_ads_responsive_mid -->
+		<ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-1311998530216395" data-ad-slot="2377536123" data-ad-format="link"></ins>
+		<script>
+		(adsbygoogle = window.adsbygoogle || []).push({});
+		</script>
+		<br><br>
+	<br><br>
+	
+	<h4>Creating the XML File</h4>
+	<p>The XML_response() function takes care of generating and sending the XML file in the format that has already been explained.</p>
+	<p>The switches and analog values are inserted into the XML file and sent to the web browser.</p>
+	<h4>HTTP Response</h4>
+	<p>Because the HTTP response must send a different content type for the HTML page and XML file (text/html or text/xml), it has been split up in the sketch to send the correct file type in each HTTP header.</p>
+	<p>As with the previous part of this tutorial, the web page is stored on the SD card as index.htm and sent when the browser accesses the Arduino web server.</p>
+	<h2>Running the Sketch</h2>
+	<p>Wire up the push button switches and the potentiometer as shown in the circuit diagram from <a href="https://startingelectronics.org/tutorials/arduino/ethernet-shield-web-server-tutorial/AJAX-read-switches-analog" class="targetblank" target="_blank">part 9</a> of this tutorial.</p>
+	<p>Copy the index.htm file to a micro SD card and insert it into the micro SD card socket of the Ethernet shield. The index.htm file can be copied below.</p>
+	<p>Load the above sketch to the Arduino and connect to the Arduino with Ethernet shield using a web browser.</p>
+	<p>You will not seen any significant difference between this part of the tutorial and part 9 of the tutorial, but we now have an easy way of extracting values sent from the Arduino to be used on a web page.</p>
+	<h3>Web Page Source Code</h3>
+	<p>The web page can be copied here and pasted to a file called index.htm:</p>
+	
+<pre class="code">&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+    &lt;head&gt;
+        &lt;title&gt;Arduino SD Card Web Page using Ajax with XML&lt;/title&gt;
+        &lt;script&gt;
+        function GetArduinoInputs()
+        {
+            nocache = "&amp;nocache=" + Math.random() * 1000000;
+            var request = new XMLHttpRequest();
+            request.onreadystatechange = function()
+            {
+                if (this.readyState == 4) {
+                    if (this.status == 200) {
+                        if (this.responseXML != null) {
+                            // extract XML data from XML file (containing switch states and analog value)
+                            document.getElementById("input1").innerHTML =
+                                this.responseXML.getElementsByTagName('button1')[0].childNodes[0].nodeValue;
+                            document.getElementById("input2").innerHTML =
+                                this.responseXML.getElementsByTagName('button2')[0].childNodes[0].nodeValue;
+                            document.getElementById("input3").innerHTML =
+                                this.responseXML.getElementsByTagName('analog1')[0].childNodes[0].nodeValue;
+                        }
+                    }
+                }
+            }
+            request.open("GET", "ajax_inputs" + nocache, true);
+            request.send(null);
+            setTimeout('GetArduinoInputs()', 1000);
+        }
+    &lt;/script&gt;
+    &lt;/head&gt;
+    &lt;body onload="GetArduinoInputs()"&gt;
+        &lt;h1&gt;Arduino Inputs from SD Card Web Page using Ajax with XML&lt;/h1&gt;
+        &lt;p&gt;Button 1 (pin 7): &lt;span id="input1"&gt;...&lt;/span&gt;&lt;/p&gt;
+        &lt;p&gt;Button 2 (pin 8): &lt;span id="input2"&gt;...&lt;/span&gt;&lt;/p&gt;
+        &lt;p&gt;Analog (A2): &lt;span id="input3"&gt;...&lt;/span&gt;&lt;/p&gt;
+    &lt;/body&gt;
+&lt;/html&gt;
+</pre>
+
+	<div class="article_pg_nav">
+		<p><a href="https://startingelectronics.org/tutorials/arduino/ethernet-shield-web-server-tutorial/SD-card-AJAX-web-server">← Go back to Part 13</a><a class="right_link" href="https://startingelectronics.org/tutorials/arduino/ethernet-shield-web-server-tutorial/SD-card-gauge">Go to Part 15 →</a></p>
+	</div>
+	
+<div id="bot_g_ad">
+<script async="" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<!-- bottom_responsive -->
+<ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-1311998530216395" data-ad-slot="9255993722" data-ad-format="auto"></ins>
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+</div>
+
+<!-- Google matched content ad -->
+<script async="" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<ins class="adsbygoogle" style="display:block" data-ad-format="autorelaxed" data-ad-client="ca-pub-1311998530216395" data-ad-slot="2935939325"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+<br><br><br><br><br><br><br><br>
+
+<div id="disqus_thread"><iframe id="dsq-app4" name="dsq-app4" allowtransparency="true" frameborder="0" scrolling="no" tabindex="0" title="Disqus" width="100%" src="./Arduino Inputs using Ajax with XML on Arduino Web Server_files/saved_resource.html" style="width: 1px !important; min-width: 100% !important; border: none !important; overflow: hidden !important; height: 0px !important; display: none !important;"></iframe><iframe id="dsq-app1" name="dsq-app1" allowtransparency="true" frameborder="0" scrolling="no" tabindex="0" title="Disqus" width="100%" src="./Arduino Inputs using Ajax with XML on Arduino Web Server_files/saved_resource(1).html" style="width: 1px !important; min-width: 100% !important; border: none !important; overflow: hidden !important; height: 441px !important;" horizontalscrolling="no" verticalscrolling="no"></iframe></div>
+<script>
+    /**
+     *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+     *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+     */
+    /*
+    var disqus_config = function () {
+        this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+        this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    };
+    */
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+        
+        s.src = '//startingelectronics.disqus.com/embed.js';
+        
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the &lt;a href="https://disqus.com/?ref_noscript" rel="nofollow"&gt;comments powered by Disqus.&lt;/a&gt;</noscript>
+</div>
+
+						
+			<div id="r_col">
+				<p><b>Donate to Starting Electronics</b></p>
+<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
+<input type="hidden" name="cmd" value="_s-xclick">
+<input type="hidden" name="hosted_button_id" value="ZENNAW6UH584C">
+<input type="image" src="./Arduino Inputs using Ajax with XML on Arduino Web Server_files/btn_donateCC_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
+<img alt="" border="0" src="./Arduino Inputs using Ajax with XML on Arduino Web Server_files/pixel.gif" width="1" height="1">
+</form>
+<div class="vert_menu">
+	<p>Arduino Ethernet Shield Tutorial</p>
+	<ul>
+		<li class="areadoc"><a href="https://startingelectronics.org/tutorials">Tutorials</a></li>
+		<li><div><a href="https://startingelectronics.org/tutorials/arduino">Arduino</a></div></li>
+		
+		<li><div class="menudoc"><a href="https://startingelectronics.org/tutorials/arduino/ethernet-shield-web-server-tutorial">Part 1: Ethernet Shield Tutorial Introduction and Hardware</a></div></li>
+		<li><div class="menudoc"><a href="https://startingelectronics.org/tutorials/arduino/ethernet-shield-web-server-tutorial/basic-web-server">Part 2: Basic Arduino Web Server</a></div></li>
+		<li><div class="menudoc"><a href="https://startingelectronics.org/tutorials/arduino/ethernet-shield-web-server-tutorial/web-page-structure">Part 3: HTML Web Page Structure</a></div></li>
+		<li><div class="menudoc"><a href="https://startingelectronics.org/tutorials/arduino/ethernet-shield-web-server-tutorial/SD-card-web-server">Part 4: Arduino SD Card Web Server</a></div></li>
+		<li><div class="menudoc"><a href="https://startingelectronics.org/tutorials/arduino/ethernet-shield-web-server-tutorial/web-server-LED-control">Part 5: Arduino Web Server LED Control</a></div></li>
+		<li><div class="menudoc"><a href="https://startingelectronics.org/tutorials/arduino/ethernet-shield-web-server-tutorial/web-server-read-switch">Part 6: Reading a Switch</a></div></li>
+		<li><div class="menudoc"><a href="https://startingelectronics.org/tutorials/arduino/ethernet-shield-web-server-tutorial/web-server-read-switch-using-AJAX">Part 7: Reading a Switch using AJAX</a></div></li>
+		<li><div class="menudoc"><a href="https://startingelectronics.org/tutorials/arduino/ethernet-shield-web-server-tutorial/web-server-read-switch-automatically-using-AJAX">Part 8: Reading a Switch Automatically using AJAX</a></div></li>
+		<li><div class="menudoc"><a href="https://startingelectronics.org/tutorials/arduino/ethernet-shield-web-server-tutorial/AJAX-read-switches-analog">Part 9: Reading an Analog Input and Switches using AJAX</a></div></li>
+		<li><div class="menudoc"><a href="https://startingelectronics.org/tutorials/arduino/ethernet-shield-web-server-tutorial/SD-card-web-server-links">Part 10: Linking Web Pages</a></div></li>
+		<li><div class="menudoc"><a href="https://startingelectronics.org/tutorials/arduino/ethernet-shield-web-server-tutorial/SD-card-web-server-image">Part 11: Web Page Images</a></div></li>
+		<li><div class="menudoc"><a href="https://startingelectronics.org/tutorials/arduino/ethernet-shield-web-server-tutorial/CSS-introduction">Part 12: CSS Introduction</a></div></li>
+		<li><div class="menudoc"><a href="https://startingelectronics.org/tutorials/arduino/ethernet-shield-web-server-tutorial/SD-card-AJAX-web-server">Part 13: Reading a Switch with SD Card Web Server and Ajax</a></div></li>
+		<li><div class="menudoc"><a class="vert_menu_sel" href="https://startingelectronics.org/tutorials/arduino/ethernet-shield-web-server-tutorial/SD-card-AJAX-XML-web-server">Part 14: Reading Inputs with Ajax and XML</a></div></li>
+		<li><div class="menudoc"><a href="https://startingelectronics.org/tutorials/arduino/ethernet-shield-web-server-tutorial/SD-card-gauge">Part 15: Analog Value Displayed on Gauge</a></div></li>
+		<li><div class="menudoc"><a href="https://startingelectronics.org/tutorials/arduino/ethernet-shield-web-server-tutorial/SD-card-IO">Part 16: Inputs and Outputs (I/O)</a></div></li>
+		<li><div class="menudoc"><a href="https://startingelectronics.org/tutorials/arduino/ethernet-shield-web-server-tutorial/accessing-HTML-with-CSS-and-JavaScript">Part 17: Accessing HTML Tags with CSS and JavaScript</a></div></li>
+		<li><div class="menudoc"><a href="https://startingelectronics.org/tutorials/arduino/ethernet-shield-web-server-tutorial/CSS-for-positioning">Part 18: CSS for Positioning, Sizing and Spacing</a></div></li>
+		<li><div class="menudoc"><a href="https://startingelectronics.org/tutorials/arduino/ethernet-shield-web-server-tutorial/ethernet-shield-tutorial-summary">Summary and Conclusion</a></div></li>
+	</ul>
+</div>
+		<script async="" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+		<!-- responsive_right -->
+		<ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-1311998530216395" data-ad-slot="7503608528" data-ad-format="auto"></ins>
+		<script>
+		(adsbygoogle = window.adsbygoogle || []).push({});
+		</script>
+		<!-- amazon ad code replaces above google ad code -->
+		<!--<script type="text/javascript" language="javascript" src="//c.amazon-adsystem.com/aax2/getads.js"></script>
+		<script type="text/javascript" language="javascript">
+		//<![CDATA[
+		aax_getad_mpb({
+		  "slot_uuid":"c6251925-4a02-4950-9fc5-72c9d0c52a68"
+		});
+		//]]>
+		</script> -->
+<!--<br /><p><a href="https://www.elektor.com/c-programming-with-arduino" class="targetblank"><img src="/images/arduino-c-book.jpg" alt="C Programming with Arduino" width="300" height="600" /></a></p>-->
+
+<br>
+<script type="text/javascript" language="javascript" src="https://c.amazon-adsystem.com/aax2/getads.js"></script>
+<script type="text/javascript" language="javascript">
+  //<![CDATA[
+    aax_getad_mpb({
+      "slot_uuid":"c6251925-4a02-4950-9fc5-72c9d0c52a68"
+    });
+  //]]>
+</script>
+
+
+<br><p><a href="https://share.payoneer.com/nav/orTf6l4w4CA_xk91WTK_uRhdE-LqeBGCTY01kt5c1DCGLQFOYhrM1Hdu8crWmHL_0sd9HA_E9L2sOJ7W4sFxpA2"><img src="./Arduino Inputs using Ajax with XML on Arduino Web Server_files/payoneer.png" alt="Payoneer"></a></p>
+<br>
+<!-- Amazon Recommendation Ads -->
+<script src="https://z-na.amazon-adsystem.com/widgets/onejs?MarketPlace=US&amp;adInstanceId=bbe6b821-8899-4f0c-b533-5580e7876f36"></script>
+
+
+
+			</div>
+
+		</div> <!-- end "page_body" -->
+			<div class="clr_flt"></div>
+<!--		</div>  end of "page" div -->
+		<div id="footer">
+			<div class="social_media">
+				<ul>
+					<li class="sm_fb"><a href="http://www.facebook.com/startingelectronics" class="targetblank" target="_blank">Facebook</a></li>
+					<li class="sm_gp"><a href="https://plus.google.com/+startingelectronics" class="targetblank" target="_blank">Google+</a></li>
+					<li class="sm_tw"><a href="https://twitter.com/StartingElectro" class="targetblank" target="_blank">Twitter</a></li>
+					<!--<li class="sm_bl"><a href="/blog/" class="targetblank">Blog</a></li>-->
+					<li class="sm_bl"><a href="http://blog.startingelectronics.com/" class="targetblank" target="_blank">Blog</a></li>
+					<li class="sm_yt"><a href="http://www.youtube.com/startingelectronics" class="targetblank" target="_blank">YouTube</a></li>
+					<li class="sm_am"><a href="http://astore.amazon.com/startielectr-20" class="targetblank" target="_blank">amazon.com aStore</a></li>
+					<li class="sm_do"><a href="https://startingelectronics.org/site/donate/">Donate</a></li>
+				</ul>
+			</div>
+			<div class="footer_block_hor">
+				<ul>
+					<li><a href="https://startingelectronics.org/arduino/">Arduino</a></li>
+					<li><a href="https://startingelectronics.org/site/about/">About</a></li>
+					<li><a href="https://startingelectronics.org/site/contact/">Contact</a></li>
+					<li><a href="https://startingelectronics.org/site/donate/">Donate</a></li>
+					<li><a href="https://startingelectronics.org/site/privacy-policy/">Privacy Policy</a></li>
+					<li><a href="https://startingelectronics.org/site/amazon-adverts/">Amazon Adverts</a></li>
+				</ul>
+				<div class="clr_flt"></div>
+				<p id="cpy_txt">© 2012 – 2017, Starting Electronics</p>
+				<div class="clr_flt"></div>
+			</div>
+		</div>
+		
+		</div> <!-- end of "page" div -->
+		
+		<script src="./Arduino Inputs using Ajax with XML on Arduino Web Server_files/global.js.download"></script>
+	
+
+
+<iframe style="display: none;" src="./Arduino Inputs using Ajax with XML on Arduino Web Server_files/saved_resource(2).html"></iframe></body><div id="cye-workaround-body" style="position: absolute; left: 0px; top: 0px; z-index: -2147483646; background: none 0% 0% / auto repeat scroll padding-box border-box rgb(220, 219, 217); height: 8862px; width: 1903px;"></div><div id="cye-workaround-body-image" style="position: absolute; left: 0px; top: 0px; z-index: -2147483645; background: none 0% 0% / auto repeat scroll padding-box border-box rgba(0, 0, 0, 0); height: 8862px; width: 1903px;"></div></html>
