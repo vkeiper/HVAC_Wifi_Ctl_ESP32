@@ -34,7 +34,7 @@ ported for sparkfun esp32
 #define REQ_BUF_SZ   256
 
 //Application Version
-const char* sAppVer     = "v0.1 20170609_0311_VK HVAC_Controller_ESP32_Wifi";
+const char* sAppVer     = "v0.1 20170611_1641_VK HVAC_Controller_ESP32_Wifi";
 
 const char* ssid         = "NETGEAR26";
 const char* password     = "fluffyvalley904";
@@ -62,13 +62,14 @@ File html1;
 File logo;
 
 //HVAC Vars
-  float an_condtemp,an_ambtemp;
+  float an_condtemp,an_ambtemp,an_cnddegf,an_ambdegf;
   int an_ch7raw,an_ch6raw;
-  bool tstat_dmd,frost_flt;
-  
+  bool tstat_dmd,frost_flt,mn_auxfan,mn_acmain;
+  bool acmain_on = false;  
   String  strTemp;
   String strDmd;
   String strFrost;
+
 /*
  * This table represents the PTC map. Index0
  * indicates -40C and each index is 1 degree 
@@ -99,6 +100,7 @@ void setup()
     //pinMode(26, OUTPUT);      // set the SSR_ACMAIN
     setupPtcs();
     setupSSRs();
+    setupTmrFrost();
     
     delay(10);
 
@@ -234,18 +236,22 @@ void loop(){
 
         // Check if request was AUXFAN ON or OFF
         if (currentLine.endsWith("GET /ON_AUXFAN")) {
-          digitalWrite(pinAUXFAN, HIGH);              
+          //digitalWrite(pinAUXFAN, HIGH);              
+          mn_auxfan = true;
         }
         else if (currentLine.endsWith("GET /OFF_AUXFAN")) {
-          digitalWrite(pinAUXFAN, LOW);                
+          //digitalWrite(pinAUXFAN, LOW);                
+          mn_auxfan = false;
         }
 
         // Check if request was ACMAIN ON or OFF
         else if (currentLine.endsWith("GET /ON_ACMAIN")) {
-          digitalWrite(pinACMAIN, HIGH);              
+          //digitalWrite(pinACMAIN, HIGH);              
+          mn_acmain = true;
         }
         else if (currentLine.endsWith("GET /OFF_ACMAIN")) {
-          digitalWrite(pinACMAIN, LOW);               
+          //digitalWrite(pinACMAIN, LOW);               
+          mn_acmain = false;
         }
       }
       delay(1);      // give the web browser time to receive the data
@@ -254,7 +260,9 @@ void loop(){
     client.stop();
     Serial.println("client disonnected");
   }
-}
+  
+  chkTmrFrostSemi();
+}//end loop
 
 void setupPtcs()
 {
@@ -585,6 +593,208 @@ int8_t ProcessPtc(uint16_t scale,uint16_t adc, int8_t cal)
     }
 }
 
+
+hw_timer_t * tmrFrost = NULL;
+volatile SemaphoreHandle_t timerSemaphore;
+portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
+
+volatile uint32_t isrCounter = 0;
+volatile uint32_t lastIsrAt = 0;
+
+
+void IRAM_ATTR onTimer(){
+  // Increment the counter and set the time of ISR
+  portENTER_CRITICAL_ISR(&timerMux);
+  isrCounter++;
+  lastIsrAt = millis();
+  portEXIT_CRITICAL_ISR(&timerMux);
+  // Give a semaphore that we can check in the loop
+  xSemaphoreGiveFromISR(timerSemaphore, NULL);
+  // It is safe to use digitalRead/Write here if you want to toggle an output
+}
+
+void setupTmrFrost() {
+  // Create semaphore to inform us when the timer has fired
+  timerSemaphore = xSemaphoreCreateBinary();
+
+  // Use 1st timer of 4 (counted from zero).
+  // Set 80 divider for prescaler (see ESP32 Technical Reference Manual for more
+  // info).
+  tmrFrost = timerBegin(0, 80, true);
+
+  // Attach onTimer function to our timer.
+  timerAttachInterrupt(tmrFrost, &onTimer, true);
+
+  // Set alarm to call onTimer function every half second (value in microseconds).
+  // Repeat the alarm (third parameter)
+  timerAlarmWrite(tmrFrost, 500000, true);
+
+  // Start an alarm
+  timerAlarmEnable(tmrFrost);
+
+  timerStart(tmrFrost);
+}
+
+void chkTmrFrostSemi() {
+  // If Timer has fired
+  if (xSemaphoreTake(timerSemaphore, 0) == pdTRUE){
+    uint32_t isrCount = 0, isrTime = 0;
+    // Read the interrupt count and time
+    portENTER_CRITICAL(&timerMux);
+    isrCount = isrCounter;
+    isrTime = lastIsrAt;
+    portEXIT_CRITICAL(&timerMux);
+    // Print it
+    Serial.print("Frost Timer onTimer no. ");
+    Serial.print(isrCount);
+    Serial.print(" at ");
+    Serial.print(isrTime);
+    Serial.println(" ms");
+
+    //Update Analog Vars, te
+    FrostCheck();
+    SetAcMainAuxFan();
+  }
+  /*
+  // If button is pressed
+  if (digitalRead(BTN_STOP_ALARM) == LOW) {
+    // If timer is still running
+    if (timer) {
+      // Stop and free timer
+      timerEnd(timer);
+      timer = NULL;
+    }
+  }
+  */
+}
+
+//-- Analog temperature register for condensor temp
+//--Create Timer to restore AC after warmup period, will be 15 minutes after debug
+//tmrFrost = tmr.create()
+//-- register timer if not already reg'd
+//tmrFrost:register(5000, tmr.ALARM_SINGLE, function() RestoreACMain() end)
+
+
+//--method to toggle pins for SSR control
+void FrostCheck(void)
+{
+  static bool bFrostEmin;
+   
+  //--last status for th pin passed in
+    an_ch7raw = analogRead(pinCNDSRMON);
+    an_ch6raw = analogRead(pinAMBMON);
+    
+    an_condtemp = (float)ProcessPtc(4095,an_ch7raw,-6);
+    an_ambtemp = (float)ProcessPtc(4095,an_ch6raw,-6);
+    an_ambdegf = an_condtemp* 9/5 + 32;
+    an_cnddegf = an_ambtemp* 9/5 + 32;
+    sprintf(&dbgstr[0],"FRST  RAW %d bits Scaled %2.2f degC %2.2f degF\r\n",
+        an_ch7raw,an_condtemp, an_cnddegf);
+    Serial.print(dbgstr);
+
+    sprintf(&dbgstr[0],"[FRST] RAW %d bits Scaled %2.2f degC %2.2f degF",
+        an_ch6raw,an_ambtemp, an_ambdegf);
+    Serial.print(dbgstr);
+
+  
+  if( an_condtemp <1 && bFrostEmin == false){
+    bFrostEmin = true;
+    //running, mode = tmrFrost:state()
+    //Serial.println("running: " +String(running)  +", mode: " +mode) -- running: false, mode: 0
+    //--only start the timer once per frost session
+    //if(timerStarted(tmrFrost) != true){
+       // timerStart(tmrFrost);
+        Serial.println("FROST EMINENT, SHUTDOWN ACPUMP & WAIT FOR WARMUP");
+        //--shutdown AC main
+        //digitalWrite(pinACMAIN,LOW);
+        //print(aSSR[2][4],2," set LOW Cnt=",aSSR[2][3])
+        //aSSR[2][2] = false
+        //aSSR[2][3] = aSSR[2][3] + 1
+        //--Turn on AC AUXFAN to accellerate melting ICE off condenser
+        //digitalWrite(pinAUXFAN,HIGH);
+        //print(aSSR[1][4],1," set HIGH Cnt=",aSSR[1][3])
+        //aSSR[1][2] = true
+        //aSSR[1][3] = aSSR[1][3] + 1
+
+        frost_flt = true;
+  
+  }else{
+    //If we were in Frost Fault call to test for 
+    if(frost_flt == true){
+        frost_flt = bRestoreACMain();
+    }
+     Serial.println("NO FROST COND. NOMAL OP MODE");
+     //timerStop(tmrFrost);
+  }
+}
+
+//--method to restart the AC after warmup period
+bool bRestoreACMain(void)
+{
+   bool retval = false;
+   //build in hysterisis for turn back on
+    if( an_condtemp >5){
+        retval = true;
+        //if( tstat_dmd){
+        Serial.println("Frost Timer Fired- RESTORE ACMAIN");
+            //digitalWrite(pinACMAIN,HIGH);
+            //--Ensure AC AUXFAN is ON to reduce chance of ICE on condenser
+            //digitalWrite(pinAUXFAN,HIGH);
+            //--stop firing
+            //timerStop(tmrFrost);
+        //}else{
+            //timerStop(tmrFrost);
+        //}
+    }else{
+      retval = false;
+        Serial.println("CONDENSER <32 degC Remain Off");
+        //--restart timer to reseed wait state 
+        //timerRestart(tmrFrost);
+    }
+
+    return retval;
+}
+
+//aSSR = {{1,0,0,"AUXFAN"},{2,0,0,"ACMAIN"}, {0,0,0,"TSTAT"}, {3,0,0,"SPARE"}}
+
+void SetAcMainAuxFan(void)
+{
+    //-- read stat demand for cool state
+    if( digitalRead(pinTSTAT) == 0)
+    {
+      tstat_dmd = true;
+    }else{
+      tstat_dmd = false;
+    }
+    //--status dbg print
+    Serial.println("MAN AUX " +String(mn_auxfan) +" MAN AC " +String(mn_acmain) +"pinSTAT " +digitalRead(pinTSTAT) +"TSTAT VAR " +String(tstat_dmd) +"FRST " +String(frost_flt));
+    
+    //--Test if ACMAIN should be on
+    if( mn_auxfan == true){ 
+        digitalWrite(pinACMAIN,HIGH);
+    }else{
+        if(tstat_dmd == true && frost_flt == false){
+            digitalWrite(pinACMAIN,HIGH);
+    }else if(tstat_dmd == false  || frost_flt == true){
+            digitalWrite(pinACMAIN,LOW);
+        }
+    }
+
+    //--Test If AuxFan should be ON
+    if( mn_acmain == true){ 
+        digitalWrite(pinAUXFAN,HIGH);
+    }else{
+        if(tstat_dmd == true && frost_flt == false){
+            digitalWrite(pinAUXFAN,HIGH);
+        }
+        else if( tstat_dmd == false  || frost_flt == true){
+            digitalWrite(pinAUXFAN,LOW);
+        }
+    }
+}
+
+
+
 // send the XML file with switch statuses and analog value
 void XML_response(WiFiClient cl)
 {
@@ -592,16 +802,16 @@ void XML_response(WiFiClient cl)
     
     int analog_val;
    
-    an_ch7raw = analogRead(pinCNDSRMON);
-    an_ch6raw = analogRead(pinAMBMON);
+    //an_ch7raw = analogRead(pinCNDSRMON);
+    //an_ch6raw = analogRead(pinAMBMON);
     
-    an_condtemp = (float)ProcessPtc(4095,an_ch7raw,-6);
-    an_ambtemp = (float)ProcessPtc(4095,an_ch6raw,-6);
-    sprintf(&dbgstr[0],"FRST  RAW %d bits Scaled %2.2f degC %2.2f degF\r\n",
+    //an_condtemp = (float)ProcessPtc(4095,an_ch7raw,-6);
+    //an_ambtemp = (float)ProcessPtc(4095,an_ch6raw,-6);
+    sprintf(&dbgstr[0],"[XML] FRST  RAW %d bits Scaled %2.2f degC %2.2f degF\r\n",
         an_ch7raw,an_condtemp, an_condtemp* 9/5 + 32);
     Serial.print(dbgstr);
 
-    sprintf(&dbgstr[0],"[XML] FRST RAW %d bits Scaled %2.2f degC %2.2f degF",
+    sprintf(&dbgstr[0],"[XML] AMB RAW %d bits Scaled %2.2f degC %2.2f degF",
         an_ch6raw,an_ambtemp, an_ambtemp* 9/5 + 32);
     Serial.print(dbgstr);
 
@@ -610,9 +820,13 @@ void XML_response(WiFiClient cl)
     strbuff = String(strbuff + "<digCh_1>");
     if(digitalRead(pinTSTAT) == false){
         strbuff = String(strbuff + "COOL");
+        strbuff = String(strbuff + " MANAX " + String(mn_auxfan));
+        strbuff = String(strbuff + " MANAC " + String(mn_acmain));
     }
     else {
         strbuff = String(strbuff + "OFF");
+        strbuff = String(strbuff + " MANAX " + String(mn_auxfan));
+        strbuff = String(strbuff + " MANAC " + String(mn_acmain));
     }
     strbuff = String(strbuff + "</digCh_1>");
     
@@ -629,13 +843,13 @@ void XML_response(WiFiClient cl)
     //analog_val = analogRead(7);
     strbuff = String(strbuff + "<anCh_1>");
     strbuff = String(strbuff +"RAW " +String(an_ch7raw) +" " + String(an_condtemp));
-    strbuff = String(strbuff +"degC " + String(an_condtemp* 9/5 + 32) +"degF");
+    strbuff = String(strbuff +"degC " + String(an_cnddegf) +"degF");
     strbuff = String(strbuff + "</anCh_1>");
     
     // read analog pin 6 (Ambient Room temp)
     strbuff = String(strbuff + "<anCh_2>");
     strbuff = String(strbuff +"RAW " +String(an_ch6raw) +" " + String(an_ambtemp));
-    strbuff = String(strbuff +"degC " + String(an_ambtemp* 9/5 + 32) +"degF");
+    strbuff = String(strbuff +"degC " + String(an_ambdegf) +"degF");
     strbuff = String(strbuff + "</anCh_2>");
     
     strbuff = String(strbuff + "</ajax_vars>");
