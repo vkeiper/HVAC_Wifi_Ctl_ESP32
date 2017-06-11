@@ -1,0 +1,48 @@
+/* the form sits inside this div */
+.param_form {
+	width: 70%;
+	border: 1px solid blue;
+	padding: 0 10px 0 10px;
+	background-color: #E3F6F7;
+	border-radius: 10px;
+}
+/* the parameter container houses the parameter label and box */
+.param_container {
+	border: 1px solid gray;
+	margin: 10px 0 10px 0;
+	padding: 5px;
+	background-color: white;
+	border-radius: 10px;
+}
+/* parameter labels */
+.param_lbl {
+	min-width: 6em;
+	float: left;
+}
+/* parameter box */
+.param_box {
+	float: left;
+}
+
+/* parameter details */
+.param_info {
+	font-size: 90%;
+	color: #08519E;
+}
+/* set size of MAC address input */
+#mac1, #mac2, #mac3, #mac4, #mac5, #mac6, #score_refresh {
+	width: 2.2em;
+}
+/* IP, gateway and subnet address fields */
+#ip1, #ip2, #ip3, #ip4, #gw1, #gw2, #gw3, #gw4, #sub1, #sub2, #sub3, #sub4 {
+	width: 3.2em;
+}
+#port_num {
+	width: 5.2em;
+}
+
+@media screen and (max-width: 768px) {
+	.param_form {
+		width: 94%;
+	}
+}

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="description" content="ATDI Dynamic WebPages">
+  <meta name="keywords" content="HTML,CSS,XML,JavaScript">
+<title>WiFi Linked HVAC Controller</title>
+
+	<script>
+        function GetXml()
+        {
+            nocache = "&nocache=" + Math.random() * 1000000;
+            var request = new XMLHttpRequest();
+            request.onreadystatechange = function()
+            {
+                if (this.readyState == 4) {
+                    if (this.status == 200) {
+                        if (this.responseXML != null) {
+                            // extract XML data from XML file (containing switch states and analog value)
+                            document.getElementById("dig_1").innerHTML =
+                                this.responseXML.getElementsByTagName('digCh_1')[0].childNodes[0].nodeValue;
+                            document.getElementById("dig_2").innerHTML =
+                                this.responseXML.getElementsByTagName('digCh_2')[0].childNodes[0].nodeValue;
+                            document.getElementById("an_1").innerHTML =
+                                this.responseXML.getElementsByTagName('anCh_1')[0].childNodes[0].nodeValue;
+							document.getElementById("an_2").innerHTML =
+                                this.responseXML.getElementsByTagName('anCh_2')[0].childNodes[0].nodeValue;
+                        }
+                    }
+                }
+            }
+            request.open("GET", "ajax_vars" + nocache, true);
+            request.send(null);
+            setTimeout('GetXml()', 1000);
+        }
+    </script>
+</head>
+<body onload = GetXml()>
+	<img src="atdilogo.bmp" alt="ATDI Logo" style="width:290px;height:67px;">
+	<h1>MBR HVAC Web Server</h1>
+		<p>SSR_AUXFAN <a href="/ON_AUXFAN">-ON-</a> <a href="/OFF_AUXFAN">-OFF-</a><br></p>
+		<p>SSR_ACMAIN <a href="/ON_ACMAIN">-ON-</a> <a href="/OFF_ACMAIN">-OFF-</a><br></p>
+		<p>TSTAT Demand Monitor: <span id="dig_1">...</span>  </p>
+		<p>Condensor Fros Fault: <span id="dig_2">...</span>  </p>
+		<p>Condensor Temperaure: <span id="an_1">...</span>  </p>
+		<p>Amb. Room Temperaure: <span id="an_2">...</span>  </p>
+		<p>WebPage Version: v.0.1 20170611_0133 Author: Vincent Keiper </p>
+</body>
+</html>
