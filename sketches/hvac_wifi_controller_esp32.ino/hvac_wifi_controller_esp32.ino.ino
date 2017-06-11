@@ -29,6 +29,7 @@ ported for sparkfun esp32
 #include "FS.h"
 #include "SD.h"
 #include "SPI.h"
+
 // size of buffer used to capture HTTP requests
 #define REQ_BUF_SZ   256
 
@@ -49,9 +50,9 @@ WiFiClient client;
 char HTTP_req[REQ_BUF_SZ] = {0}; // buffered HTTP request stored as null terminated string
 char req_index = 0;              // index into HTTP_req buffer
 //HVAC application variables
-const char pinCNDSRMON = 27;  //analog in (frost monitor, condensor)
-const char achCNSRMON  =  7;
-const char pinAMBMON   = 14;  //analog in (ambient room temp)
+const char pinCNDSRMON = 36;  //analog in (frost monitor, condensor)
+const char achCNDSRMON =  7;
+const char pinAMBMON   = 39;  //analog in (ambient room temp)
 const char achAMBMON   =  6;
 const char pinTSTAT    = 12;  //dig in
 const char pinAUXFAN   = 25;  //dig out
@@ -68,7 +69,28 @@ File logo;
   String  strTemp;
   String strDmd;
   String strFrost;
-
+/*
+ * This table represents the PTC map. Index0
+ * indicates -40C and each index is 1 degree 
+ * higher than the last.
+ */
+static const uint16_t ptcbits[] = {993,992,989,987,985,983,980,977,974,971,
+    968,965,962,958,954,950,946,942,937,932,
+    927,922,917,911,906,900,893,887,880,874,
+    866,859,852,844,836,827,819,810,802,792,
+    783,774,764,754,744,734,724,713,702,692,
+    681,670,659,648,636,625,614,602,591,580,
+    568,557,545,534,523,512,500,489,478,467,
+    456,446,435,425,414,404,394,384,375,365,
+    356,346,337,328,320,311,303,294,286,279,
+    271,263,256,249,242,235,229,222,216,210,
+    204,198,192,187,182,176,171,166,162,157,
+    153,148,144,140,136,132,128,124,121,117,
+    114,111,108,105,102,99,96,93,91,88,
+    86,83,81,79,77,75,73,71,69,67,
+    65,63,62,60,58,57,55,54,52,51,
+    50,48,47,46,45,44,42,41,40,39
+};
 
 void setup()
 {
@@ -172,7 +194,7 @@ void loop(){
               // remainder of header follows below, depending on if
               // web page or XML page is requested
               // Ajax request - send XML file
-            else if (StrContains(HTTP_req, "GET /atdilogo")) {
+            else if (StrContains(HTTP_req, "atdilogo.bmp")) {
                 // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
                  // and a content-type so the client knows what's coming, then a blank line
                  // send a standard http response header
@@ -236,8 +258,34 @@ void loop(){
 
 void setupPtcs()
 {
-  pinMode(A7, OUTPUT);      // set PTC1 (FROST DETECT)
-  pinMode(A6,OUTPUT);  //analog in (ambient room temp)
+   /* 
+    *  Attach pin to ADC (will also clear any other analog mode that could be on)
+     */
+    if( adcAttachPin(pinCNDSRMON)){
+      Serial.println("\r\npinA7 Attached to ADC");
+    }else{
+      Serial.println("\r\nFAILED pinA7 Attached to ADC");
+    }
+
+    if( adcAttachPin(pinAMBMON)){
+      Serial.println("\r\npinA6 Attached to ADC");
+    }else{
+      Serial.println("\r\nFAILED pinA6 Attached to ADC");
+    }
+
+
+    if( adcStart(pinCNDSRMON)){
+      Serial.println("\r\npinA7 Started ADC");
+    }else{
+      Serial.println("\r\nFAILED pinA7 Started ADC");
+    }
+    
+    if( adcStart(pinAMBMON)){
+      Serial.println("\r\npinA6 Started ADC");
+    }else{
+      Serial.println("\r\nFAILED pinA6 Started ADC");
+    }
+
 }
 
 void setupSSRs()
@@ -507,6 +555,36 @@ char StrContains(char *str, char *sfind)
 
 //End String funcs
 
+
+
+/*
+ * PAss in ADC results scaled at 1023 and it will return
+ * a temp in degC from -40 to 120 based on ADC reading.
+ */
+int8_t ProcessPtc(uint16_t scale,uint16_t adc, int8_t cal)
+{
+    uint16_t scBits=0;
+    int i;
+    Serial.println("[PTC] ADCbits" +String(adc));
+    for (i=0;i<159;i++)
+    {
+        if(scale == 1023){
+          scBits = ptcbits[i];
+        }else{
+          scBits = ptcbits[i]*4;
+        }
+        if( scBits < adc)
+        { 
+            Serial.println("[PTC] Exit Ival" +String(i));
+            return ((i-40)+cal);// origi-40;, added more offset to correct ADC issue on ESP32
+        }else{
+            if( i >159){
+                return 120;//return MAX 
+            }
+        }
+    }
+}
+
 // send the XML file with switch statuses and analog value
 void XML_response(WiFiClient cl)
 {
@@ -514,11 +592,11 @@ void XML_response(WiFiClient cl)
     
     int analog_val;
    
-    an_ch7raw = analogRead(achCNSRMON);
-    an_ch6raw = analogRead(achAMBMON);
+    an_ch7raw = analogRead(pinCNDSRMON);
+    an_ch6raw = analogRead(pinAMBMON);
     
-    an_condtemp = (float)an_ch7raw * (300.00/4095.00);
-    an_ambtemp = (float)an_ch6raw * (300.00/4095.00);
+    an_condtemp = (float)ProcessPtc(4095,an_ch7raw,-6);
+    an_ambtemp = (float)ProcessPtc(4095,an_ch6raw,-6);
     sprintf(&dbgstr[0],"FRST  RAW %d bits Scaled %2.2f degC %2.2f degF\r\n",
         an_ch7raw,an_condtemp, an_condtemp* 9/5 + 32);
     Serial.print(dbgstr);
@@ -550,12 +628,14 @@ void XML_response(WiFiClient cl)
     // read analog pin 7 (AC Condensor temp)
     //analog_val = analogRead(7);
     strbuff = String(strbuff + "<anCh_1>");
-    strbuff = String(strbuff + String(an_condtemp));
+    strbuff = String(strbuff +"RAW " +String(an_ch7raw) +" " + String(an_condtemp));
+    strbuff = String(strbuff +"degC " + String(an_condtemp* 9/5 + 32) +"degF");
     strbuff = String(strbuff + "</anCh_1>");
     
     // read analog pin 6 (Ambient Room temp)
     strbuff = String(strbuff + "<anCh_2>");
-    strbuff = String(strbuff + String(an_ambtemp));
+    strbuff = String(strbuff +"RAW " +String(an_ch6raw) +" " + String(an_ambtemp));
+    strbuff = String(strbuff +"degC " + String(an_ambtemp* 9/5 + 32) +"degF");
     strbuff = String(strbuff + "</anCh_2>");
     
     strbuff = String(strbuff + "</ajax_vars>");
