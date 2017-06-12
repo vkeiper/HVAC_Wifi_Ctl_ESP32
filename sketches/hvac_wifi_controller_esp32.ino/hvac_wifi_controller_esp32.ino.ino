@@ -217,7 +217,7 @@ void loop(){
                     
                 }else{
                   Serial.println("[WEBPG] Logo Not Found!!!");
-                  while(1);
+                  //while(1);
                 }
             }
             //Respond to favico for chrome
@@ -807,7 +807,7 @@ void SetAcMainAuxFan(void)
 // send the XML file with switch statuses and analog value
 void XML_response(WiFiClient cl)
 {
-    String strbuff;
+    String strbuff,strtstat,strmnaux,strmnac;
     
     int analog_val;
    
@@ -816,27 +816,26 @@ void XML_response(WiFiClient cl)
     
     //an_condtemp = (float)ProcessPtc(4095,an_ch7raw,-6);
     //an_ambtemp = (float)ProcessPtc(4095,an_ch6raw,-6);
-    sprintf(&dbgstr[0],"[XML] FRST  RAW %d bits Scaled %2.2f degC %2.2f degF\r\n",
-        an_ch7raw,an_condtemp, an_condtemp* 9/5 + 32);
-    Serial.print(dbgstr);
+    //sprintf(&dbgstr[0],"[XML] FRST  RAW %d bits Scaled %2.2f degC %2.2f degF\r\n",
+    //    an_ch7raw,an_condtemp, an_condtemp* 9/5 + 32);
+    //Serial.print(dbgstr);
 
-    sprintf(&dbgstr[0],"[XML] AMB RAW %d bits Scaled %2.2f degC %2.2f degF",
-        an_ch6raw,an_ambtemp, an_ambtemp* 9/5 + 32);
-    Serial.print(dbgstr);
+    //sprintf(&dbgstr[0],"[XML] AMB RAW %d bits Scaled %2.2f degC %2.2f degF",
+    //    an_ch6raw,an_ambtemp, an_ambtemp* 9/5 + 32);
+    //Serial.print(dbgstr);
 
+    strtstat = digitalRead(pinTSTAT) == false?"COOLING":"NOT COOL";
+    //set manual over ride str's
+    strmnaux = mn_auxfan ==true?"TRUE":"FALSE";
+    strmnac = mn_acmain ==true?"TRUE":"FALSE";
+    
     strbuff = String("<?xml version = \"1.0\" ?>");
     strbuff = String(strbuff + "<ajax_vars>");
     strbuff = String(strbuff + "<digCh_1>");
-    if(digitalRead(pinTSTAT) == false){
-        strbuff = String(strbuff + "COOL");
-        strbuff = String(strbuff + " MANAX " + String(mn_auxfan));
-        strbuff = String(strbuff + " MANAC " + String(mn_acmain));
-    }
-    else {
-        strbuff = String(strbuff + "OFF");
-        strbuff = String(strbuff + " MANAX " + String(mn_auxfan));
-        strbuff = String(strbuff + " MANAC " + String(mn_acmain));
-    }
+    strbuff = String(strbuff + strtstat);
+    strbuff = String(strbuff + " MANUAL OVER-RIDES:");
+    strbuff = String(strbuff + " AUXFAN: " +strmnaux);
+    strbuff = String(strbuff + " ACMAIN: " + strmnac);
     strbuff = String(strbuff + "</digCh_1>");
     
     strbuff = String(strbuff + "<digCh_2>");
@@ -852,13 +851,13 @@ void XML_response(WiFiClient cl)
     //analog_val = analogRead(7);
     strbuff = String(strbuff + "<anCh_1>");
     strbuff = String(strbuff +"RAW " +String(an_ch7raw) +" " + String(an_condtemp));
-    strbuff = String(strbuff +"degC " + String(an_cnddegf) +"degF");
+    strbuff = String(strbuff +"degC " + String(an_cnddegf) +" degF");
     strbuff = String(strbuff + "</anCh_1>");
     
     // read analog pin 6 (Ambient Room temp)
     strbuff = String(strbuff + "<anCh_2>");
     strbuff = String(strbuff +"RAW " +String(an_ch6raw) +" " + String(an_ambtemp));
-    strbuff = String(strbuff +"degC " + String(an_ambdegf) +"degF");
+    strbuff = String(strbuff +"degC " + String(an_ambdegf) +" degF");
     strbuff = String(strbuff + "</anCh_2>");
     
     strbuff = String(strbuff + "</ajax_vars>");
