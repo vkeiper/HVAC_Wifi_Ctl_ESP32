@@ -1,27 +1,13 @@
 /*
-  WiFi Web Server LED Blink
+  WiFi Web Server HVAC controller with frost control 
 
- A simple web server that lets you blink an LED via the web.
- This sketch will print the IP address of your WiFi Shield (once connected)
- to the Serial monitor. From there, you can open that address in a web browser
- to turn on and off the LED on pin 5.
-
- If the IP address of your shield is yourAddress:
- http://yourAddress/H turns the LED on
- http://yourAddress/L turns it off
+ A web server that utilizes Ajax to update web page dynamically.
 
  This example is written for a network using WPA encryption. For
  WEP or WPA, change the Wifi.begin() call accordingly.
 
- Circuit:
- * WiFi shield attached
- * LED attached to pin 5
-
- created for arduino 25 Nov 2012
- by Tom Igoe
-
-ported for sparkfun esp32 
-31.01.2017 by Jan Hendrik Berlin
+For esp32 
+20170612 by Vince Keiper
  
  */
 
@@ -35,20 +21,30 @@ ported for sparkfun esp32
 
 //Application Version
 const char* sAppVer     = "v0.1 20170611_1641_VK HVAC_Controller_ESP32_Wifi";
-
+//#define HOME
+#ifdef HOME
+//Home Wifi
 const char* ssid         = "NETGEAR26";
 const char* password     = "fluffyvalley904";
+#else
+//--ATDI Wifi
+const char* ssid         = "Astrodyne";
+const char* password     = "Astro$01";
+#endif
+
 const char* httphdrstart = "HTTP/1.1 200 OK";
 const char* httphdrhtml  = "Content-Type: text/html";
 const char* httphdrxml   = "Content-Type: text/xml";
-const char* httphdrimg   = "ContentType=\"image/png";
+const char* httphdrimg   = "Content-Type:  image/png";
+const char* httphdrjs    = "Content-Type: application/x-javascript";
 const char* httphdrkeep  = "Connection: keep-alive";
+const char* httphdr404   = "HTTP/1.1 404 Not Found";
 char dbgstr[128];
 
 WiFiServer server(80);
 WiFiClient client;
 
-char HTTP_req[REQ_BUF_SZ] = {0}; // buffered HTTP request stored as null terminated string
+String HTTP_req;//[REQ_BUF_SZ] = {0}; // buffered HTTP request stored as null terminated string
 char req_index = 0;              // index into HTTP_req buffer
 //HVAC application variables
 const char pinCNDSRMON = 36;  //analog in (frost monitor, condensor)
@@ -61,7 +57,7 @@ const char pinACMAIN   = 26;  //dig out
 int value = 0;
 File html1;
 File logo;
-
+File tmp_file;
 //HVAC Vars
   float an_condtemp,an_ambtemp,an_cnddegf,an_ambdegf;
   int an_ch7raw,an_ch6raw;
@@ -136,31 +132,36 @@ void setup()
 
 
 void loop(){
+  bool bLoadIndex = false;
   client = server.available();   // listen for incoming clients
   if (client) {                             // if you get a client,
+    boolean currentLineIsBlank = true;
     Serial.println("Initialize new http client");           // print a message out the serial port
     String currentLine = "";                // make a String to hold incoming data from the client
     while (client.connected()) {            // loop while the client's connected
       if (client.available()) {             // if there's bytes to read from the client,
         char c = client.read();             // read a byte, then
         Serial.write(c);                    // print it out the serial monitor
+        HTTP_req += c;  // save the HTTP request 1 char at a time
         // buffer first part of HTTP request in HTTP_req array (string)
         // leave last element in array as 0 to null terminate string (REQ_BUF_SZ - 1)
-        if (req_index < (REQ_BUF_SZ - 1)) {
-            HTTP_req[req_index] = c;          // save HTTP request character
-            req_index++;
-        }
-        if (c == '\n') {                    // if the byte is a newline character
+        //if (req_index < (REQ_BUF_SZ - 1)) {
+        //    HTTP_req[req_index] = c;          // save HTTP request character
+        //    req_index++;
+        //}
+        // last line of client request is blank and ends with \n
+        // respond to client only after last line received
+        if (c == '\n' && currentLineIsBlank) {
           
           // if the current line is blank, you got two newline characters in a row.
           // that's the end of the client HTTP request, so send a response:
-          if (currentLine.length() == 0) {
+          //if (currentLine.length() == 0) {
             
             // remainder of header follows below, depending on if
             // web page or XML page is requested
             // Ajax request - send XML file
             // GET /ajax_vars&nocache=299105.2747379479 HTTP/1.1
-            if (StrContains(HTTP_req, "GET /ajax_vars")) {
+            if (HTTP_req.indexOf("GET /ajax_vars") > -1) {
                 // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
                 // and a content-type so the client knows what's coming, then a blank line
                 // send a standard http response header
@@ -173,31 +174,37 @@ void loop(){
                 XML_response(client);
             }
             
-            else if (StrContains(HTTP_req, "GET / ")
-                                 || StrContains(HTTP_req, "GET /index.html")
-                                 || StrContains(HTTP_req, "GET /OFF_")
-                                 || StrContains(HTTP_req, "GET /ON_"))
-                                 {
-              // send web page
-              html1 = SD.open("/index.html");        // open web page file
-              if (html1) {
-                 // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
-                 // and a content-type so the client knows what's coming, then a blank line
-                 // send a standard http response header
-                 client.println(httphdrstart);
-                 client.println(httphdrhtml);
-                 client.println(httphdrkeep);
-                 client.println();
-                 while(html1.available()) {
-                      client.write(html1.read()); // send web page to client
-                  }
-                  html1.close();
-              }
+            // web page or XML page is requested
+            // Ajax request - send XML file
+            // GET /ajax_temp&nocache=299105.2747379479 HTTP/1.1
+            else if (HTTP_req.indexOf("GET /ajax_temp") > -1) {
+                // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
+                // and a content-type so the client knows what's coming, then a blank line
+                // send a standard http response header
+                client.println(httphdrstart);
+                // send rest of HTTP header
+                client.println(httphdrxml);
+                client.println(httphdrkeep);
+                client.println();
+                // send XML file containing input states
+                XML_GaugeResp(client);
+            }
+            else if (HTTP_req.indexOf("GET / ") > -1){
+              bLoadIndex = true;
+            }
+            else if (HTTP_req.indexOf("GET /index.html") > -1){
+              bLoadIndex = true;
+            }
+            else if (HTTP_req.indexOf("GET /OFF_") > -1){
+              bLoadIndex = true;
+            }
+            else if (HTTP_req.indexOf("GET /ON_") > -1){
+              bLoadIndex = true;
             }
               // remainder of header follows below, depending on if
               // web page or XML page is requested
               // Ajax request - send XML file
-            else if (StrContains(HTTP_req, "atdilogo.bmp")) {
+            else if (HTTP_req.indexOf("atdilogo.bmp")> -1) {
                 // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
                  // and a content-type so the client knows what's coming, then a blank line
                  // send a standard http response header
@@ -220,55 +227,130 @@ void loop(){
                   //while(1);
                 }
             }
-            //Respond to favico for chrome
-            else if (StrContains(HTTP_req, "GET /favicon.ico")){
+            //Respond to favicon.ico for chrome
+            else if (HTTP_req.indexOf("GET /favicon.ico") > -1){
                 client.println("HTTP/1.0 404 \r\n\n\n");
             }
+            else if (HTTP_req.indexOf("GET /gauge.min.js") > -1)
+            {
+              // send file
+              tmp_file = SD.open("/gauge.min.js");
+              Serial.println("[WEB PAGE] Rxd gauge.min.js\r\n");  
+              if (tmp_file) {
+                 // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
+                 // and a content-type so the client knows what's coming, then a blank line
+                 // send a standard http response header
+                 client.println(httphdrstart);
+                 client.println(httphdrjs);
+                 client.println(httphdrkeep);
+                 client.println();
+                 while(tmp_file.available()) {
+                      client.write(tmp_file.read()); // send web page to client
+                      //Serial.print("CHAR");
+                  }
+                  tmp_file.close();
+              }else{
+                Serial.println("[FILE] ERROR DID NOT OPEN gauge.min.js");
+                
+              }
+            }
+            else if (HTTP_req.indexOf("GET /gauge_qry.js") > -1)
+            {
+                Serial.println("[WEB PAGE JS] Rxd gauge_qry.js\r\n");
+                tmp_file = SD.open("/gauge_qry.js");  
+                if (tmp_file) {
+                   Serial.println("[WEB PAGE JS OPENED] gauge_qry.js\r\n");  
+                   client.println(httphdrstart);
+                   client.println(httphdrjs);
+                   client.println(httphdrkeep);
+                   client.println();
+                   while(tmp_file.available()) {
+                        client.write(tmp_file.read()); // send web page to client
+                        //Serial.print("CHAR");
+                    }
+                    tmp_file.close();
+                }else{
+                  Serial.println("[FILE] ERROR DID NOT OPEN gauge.min.js");
+                }
+            }else{
+                  Serial.println("[404 ERROR] No webpage found");
+                 client.println(httphdr404);
+                 client.println();
+            }
+
+            if(bLoadIndex == true){
+              bLoadIndex = false;
             
+                Serial.println("[WEB PAGE] Rxd index.html\r\n");
+                // send web page
+                html1 = SD.open("/index.html");        // open web page file
+                if (html1) {
+                   // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
+                   // and a content-type so the client knows what's coming, then a blank line
+                   // send a standard http response header
+                   client.println(httphdrstart);
+                   client.println(httphdrhtml);
+                   client.println(httphdrkeep);
+                   client.println();
+                   while(html1.available()) {
+                        client.write(html1.read()); // send web page to client
+                    }
+                    html1.close();
+                }
+            }
             // display received HTTP request on serial port
+            Serial.println("\r\n[WEB PAGE START] Received buffer");
             Serial.print(HTTP_req);
+            Serial.println("[WEB PAGE END] Received buffer \r\n");
+            
             // reset buffer index and all buffer elements to 0
             req_index = 0;
-            StrClear(HTTP_req, REQ_BUF_SZ);
-
-            // The HTTP response ends with another blank line:
-            client.println();
+            HTTP_req = "";
             
             // break out of the while loop:
             break;
-          } else {    // if you got a newline, then clear currentLine:
-            currentLine = "";
-          }
-        } else if (c != '\r') {  // if you got anything else but a carriage return character,
-          currentLine += c;      // add it to the end of the currentLine
-        }
+          //} 
+          //else {    // if you got a newline, then clear currentLine:
+         //   currentLine = "";
+         //}
+        //} else if (c != '\r') {  // if you got anything else but a carriage return character,
+        //  currentLine += c;      // add it to the end of the currentLine
+        //}
 
         // Check if request was AUXFAN ON or OFF
-        if (currentLine.endsWith("GET /ON_AUXFAN")) {
+        if (HTTP_req.indexOf("GET /ON_AUXFAN")> -1) {
           //digitalWrite(pinAUXFAN, HIGH);              
           mn_auxfan = true;
         }
-        else if (currentLine.endsWith("GET /OFF_AUXFAN")) {
-          //digitalWrite(pinAUXFAN, LOW);                
+        else if (HTTP_req.indexOf("GET /OFF_AUXFAN")> -1) {
           mn_auxfan = false;
         }
-
         // Check if request was ACMAIN ON or OFF
-        else if (currentLine.endsWith("GET /ON_ACMAIN")) {
-          //digitalWrite(pinACMAIN, HIGH);              
+        else if (HTTP_req.indexOf("GET /ON_ACMAIN")> -1) {
           mn_acmain = true;
         }
-        else if (currentLine.endsWith("GET /OFF_ACMAIN")) {
-          //digitalWrite(pinACMAIN, LOW);               
+        else if (HTTP_req.indexOf("GET /OFF_ACMAIN")> -1) {
           mn_acmain = false;
         }
       }
+      // every line of text received from the client ends with \r\n
+      if (c == '\n') {
+          // last character on line of received text
+          // starting new line with next character read
+          currentLineIsBlank = true;
+      } 
+      else if (c != '\r') {
+          // a text character was received from client
+          currentLineIsBlank = false;
+      }
       delay(1);      // give the web browser time to receive the data
-    }
+    
+    }//end if client connected
+  } //end while loop 
     // close the connection:
     client.stop();
     Serial.println("client disonnected");
-  }
+  }//end if client
   
   chkTmrFrostSemi();
 }//end loop
@@ -511,9 +593,15 @@ void testFileIO(fs::FS &fs, const char * path){
         Serial.println("ERROR - Can't find index.htm file!");
         return;  // can't find index file
     }else{
-      readFile(SD, "/index.html");
-      //readFile(SD, "/atdilogo.bmp");
-      
+      //readFile(SD, "/index.html");   
+    }
+
+    // check for index.htm file
+    if (!SD.exists("/gauge.min.js")) {
+        Serial.println("ERROR - Can't find gauge.min.js file!");
+        return;  // can't find index file
+    }else{
+      //readFile(SD, "/gauge.min.js");   
     }
    // createDir(SD, "/mydir");
    //listDir(SD, "/", 0);
@@ -582,7 +670,7 @@ int8_t ProcessPtc(uint16_t scale,uint16_t adc, int8_t cal)
 {
     uint16_t scBits=0;
     int i;
-    Serial.println("[PTC] ADCbits" +String(adc));
+    //Serial.println("[PTC] ADCbits" +String(adc));
     for (i=0;i<159;i++)
     {
         if(scale == 1023){
@@ -592,7 +680,7 @@ int8_t ProcessPtc(uint16_t scale,uint16_t adc, int8_t cal)
         }
         if( scBits < adc)
         { 
-            Serial.println("[PTC] Exit Ival" +String(i));
+            //Serial.println("[PTC] Exit Ival" +String(i));
             return ((i-40)+cal);// origi-40;, added more offset to correct ADC issue on ESP32
         }else{
             if( i >159){
@@ -654,35 +742,17 @@ void chkTmrFrostSemi() {
     isrTime = lastIsrAt;
     portEXIT_CRITICAL(&timerMux);
     // Print it
-    Serial.print("Frost Timer onTimer no. ");
-    Serial.print(isrCount);
-    Serial.print(" at ");
-    Serial.print(isrTime);
-    Serial.println(" ms");
+    //Serial.print("Frost Timer onTimer no. ");
+    //Serial.print(isrCount);
+    //Serial.print(" at ");
+    //Serial.print(isrTime);
+    //Serial.println(" ms");
 
     //Update Analog Vars, te
     FrostCheck();
     SetAcMainAuxFan();
   }
-  /*
-  // If button is pressed
-  if (digitalRead(BTN_STOP_ALARM) == LOW) {
-    // If timer is still running
-    if (timer) {
-      // Stop and free timer
-      timerEnd(timer);
-      timer = NULL;
-    }
-  }
-  */
 }
-
-//-- Analog temperature register for condensor temp
-//--Create Timer to restore AC after warmup period, will be 15 minutes after debug
-//tmrFrost = tmr.create()
-//-- register timer if not already reg'd
-//tmrFrost:register(5000, tmr.ALARM_SINGLE, function() RestoreACMain() end)
-
 
 //--method to toggle pins for SSR control
 void FrostCheck(void)
@@ -697,35 +767,19 @@ void FrostCheck(void)
     an_ambtemp = (float)ProcessPtc(4095,an_ch6raw,-6);
     an_ambdegf = an_condtemp* 9/5 + 32;
     an_cnddegf = an_ambtemp* 9/5 + 32;
-    sprintf(&dbgstr[0],"FRST  RAW %d bits Scaled %2.2f degC %2.2f degF\r\n",
-        an_ch7raw,an_condtemp, an_cnddegf);
-    Serial.print(dbgstr);
+    //sprintf(&dbgstr[0],"FRST  RAW %d bits Scaled %2.2f degC %2.2f degF\r\n",
+    //    an_ch7raw,an_condtemp, an_cnddegf);
+    //Serial.print(dbgstr);
 
-    sprintf(&dbgstr[0],"[FRST] RAW %d bits Scaled %2.2f degC %2.2f degF",
-        an_ch6raw,an_ambtemp, an_ambdegf);
-    Serial.print(dbgstr);
+    //sprintf(&dbgstr[0],"[FRST] RAW %d bits Scaled %2.2f degC %2.2f degF",
+    //    an_ch6raw,an_ambtemp, an_ambdegf);
+    //Serial.print(dbgstr);
 
   
   if( an_condtemp <1 && bFrostEmin == false){
     bFrostEmin = true;
-    //running, mode = tmrFrost:state()
-    //Serial.println("running: " +String(running)  +", mode: " +mode) -- running: false, mode: 0
-    //--only start the timer once per frost session
-    //if(timerStarted(tmrFrost) != true){
-       // timerStart(tmrFrost);
-        Serial.println("FROST EMINENT, SHUTDOWN ACPUMP & WAIT FOR WARMUP");
-        //--shutdown AC main
-        //digitalWrite(pinACMAIN,LOW);
-        //print(aSSR[2][4],2," set LOW Cnt=",aSSR[2][3])
-        //aSSR[2][2] = false
-        //aSSR[2][3] = aSSR[2][3] + 1
-        //--Turn on AC AUXFAN to accellerate melting ICE off condenser
-        //digitalWrite(pinAUXFAN,HIGH);
-        //print(aSSR[1][4],1," set HIGH Cnt=",aSSR[1][3])
-        //aSSR[1][2] = true
-        //aSSR[1][3] = aSSR[1][3] + 1
-
-        frost_flt = true;
+    Serial.println("FROST EMINENT, SHUTDOWN ACPUMP & WAIT FOR WARMUP");
+    frost_flt = true;
   
   }else{
     //If we were in Frost Fault call to test for 
@@ -733,7 +787,6 @@ void FrostCheck(void)
         frost_flt = bRestoreACMain();
     }
      Serial.println("NO FROST COND. NOMAL OP MODE");
-     //timerStop(tmrFrost);
   }
 }
 
@@ -744,21 +797,10 @@ bool bRestoreACMain(void)
    //build in hysterisis for turn back on
     if( an_condtemp >5){
         retval = true;
-        //if( tstat_dmd){
         Serial.println("Frost Timer Fired- RESTORE ACMAIN");
-            //digitalWrite(pinACMAIN,HIGH);
-            //--Ensure AC AUXFAN is ON to reduce chance of ICE on condenser
-            //digitalWrite(pinAUXFAN,HIGH);
-            //--stop firing
-            //timerStop(tmrFrost);
-        //}else{
-            //timerStop(tmrFrost);
-        //}
     }else{
       retval = false;
         Serial.println("CONDENSER <32 degC Remain Off");
-        //--restart timer to reseed wait state 
-        //timerRestart(tmrFrost);
     }
 
     return retval;
@@ -811,11 +853,6 @@ void XML_response(WiFiClient cl)
     
     int analog_val;
    
-    //an_ch7raw = analogRead(pinCNDSRMON);
-    //an_ch6raw = analogRead(pinAMBMON);
-    
-    //an_condtemp = (float)ProcessPtc(4095,an_ch7raw,-6);
-    //an_ambtemp = (float)ProcessPtc(4095,an_ch6raw,-6);
     //sprintf(&dbgstr[0],"[XML] FRST  RAW %d bits Scaled %2.2f degC %2.2f degF\r\n",
     //    an_ch7raw,an_condtemp, an_condtemp* 9/5 + 32);
     //Serial.print(dbgstr);
@@ -861,10 +898,31 @@ void XML_response(WiFiClient cl)
     strbuff = String(strbuff + "</anCh_2>");
     
     strbuff = String(strbuff + "</ajax_vars>");
-    Serial.println("[\r\nXML SEND] START\r\n");
+    Serial.println("\r\n[XML SEND] START");
     Serial.print(strbuff);
     Serial.println("\r\n[XML SEND] END\r\n");
     client.print(strbuff);
 }
 
+// send the XML file with switch statuses and analog value
+void XML_GaugeResp(WiFiClient cl)
+{
+    String strbuff;
+   
+    strbuff = String("<?xml version = \"1.0\" ?>");
+    strbuff = String(strbuff + "<ajax_temp>");
+    strbuff = String(strbuff + "<an_CndTemp>");
+    strbuff = String(strbuff +String(an_cnddegf));
+    strbuff = String(strbuff + "</an_CndTemp>");
+
+    strbuff = String(strbuff + "<an_AmbTemp>");
+    strbuff = String(strbuff + String(an_ambdegf));
+    strbuff = String(strbuff + "</an_AmbTemp>");
+    
+    strbuff = String(strbuff + "</ajax_temp>");
+    Serial.println("[\r\nXML TEMP SEND] START\r\n");
+    Serial.print(strbuff);
+    Serial.println("\r\n[XML TEMP SEND] END\r\n");
+    client.print(strbuff);
+}
 
