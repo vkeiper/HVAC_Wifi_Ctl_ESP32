@@ -21,7 +21,7 @@ For esp32
 
 //Application Version
 const char* sAppVer     = "v0.1 20170611_1641_VK HVAC_Controller_ESP32_Wifi";
-//#define HOME
+#define HOME
 #ifdef HOME
 //Home Wifi
 const char* ssid         = "NETGEAR26";
