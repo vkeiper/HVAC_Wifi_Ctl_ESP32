@@ -81,6 +81,8 @@ File tmp_file;
   String  strTemp;
   String strDmd;
   String strFrost;
+float tempSet1 =65.00;//if tempSet2 =0 then in use 24/7 else 4PM to 8AM
+float tempSet2 =0;//8:01AM to 3:59PM
 
 /*
  * This table represents the PTC map. Index0
@@ -146,6 +148,9 @@ void setup()
 
 void loop(){
   bool bLoadIndex = false;
+  int iSpLoc1=0,iSpLoc2=0;
+  String strRxdTemp ="";
+  
   client = server.available();   // listen for incoming clients
   if (client) {                             // if you get a client,
     boolean currentLineIsBlank = true;
@@ -181,6 +186,33 @@ void loop(){
                 // send XML file containing input states
                 XML_GaugeResp(client);
             }
+
+            // example.. GET /ajax_temp&nocache=299105.2747379479 HTTP/1.1
+            else if (HTTP_req.indexOf("GET /ajax_chgsetpoint") > -1) {
+                client.println(httphdrstart);
+                client.println(httphdrxml);
+                client.println(httphdrkeep);
+                client.println();
+                // Look for set point xml start tag <SetPoint> "0x3C = '<' "0x3E = '>'
+                iSpLoc1 = HTTP_req.indexOf("%3CSetPoint%3E")+14;
+                // Look for set point xml end tag </SetPoint> "0x3C = '<' "0x3E = '>'
+                iSpLoc2 = HTTP_req.indexOf("%3C/SetPoint%3E");
+                strRxdTemp = HTTP_req.substring(iSpLoc1,iSpLoc2);
+                Serial.print("[WEBPG] GET ajax_chgsetpoint Set Point: ");
+                Serial.print(strRxdTemp);
+                Serial.println(" degF");
+                Serial.print("IdxStartTag: ");
+                Serial.print(iSpLoc1);
+                Serial.println();
+                Serial.print("IdxEndTag: ");
+                Serial.print(iSpLoc2 );
+                Serial.println(" END \n");
+                if(strRxdTemp != "")
+                {
+                    tempSet1 = strRxdTemp.toFloat();
+                }
+            }
+            
             /* GET / with a space following is a when just the IP is request comes in*/
             else if (HTTP_req.indexOf("GET / ") > -1){
                 bLoadIndex = true;
@@ -912,6 +944,14 @@ void XML_GaugeResp(WiFiClient cl)
     strbuff = String(strbuff + "<an_AmbTemp>");
     strbuff = String(strbuff + String(an_ambdegf));
     strbuff = String(strbuff + "</an_AmbTemp>");
+
+    strbuff = String(strbuff + "<an_SetTemp1>");
+    strbuff = String(strbuff + String(tempSet1));
+    strbuff = String(strbuff + "</an_SetTemp1>");
+
+    strbuff = String(strbuff + "<an_SetTemp2>");
+    strbuff = String(strbuff + String(tempSet2));
+    strbuff = String(strbuff + "</an_SetTemp2>");    
     
     strbuff = String(strbuff + "</ajax_temp>");
     #ifdef DBGXMLGAUGE1
