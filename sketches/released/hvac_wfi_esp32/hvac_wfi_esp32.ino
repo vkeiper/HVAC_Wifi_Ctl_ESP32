@@ -10,7 +10,6 @@ For esp32
 20170612 by Vince Keiper
  
  */
-
 #include <WiFi.h>
 #include "FS.h"
 #include "SD.h"
@@ -173,7 +172,7 @@ void setup()
     ctldata_s.manstate_s.acpump = false;
     ctldata_s.manstate_s.auxfan = false;
     
-    Serial.begin(115200);
+    Serial.begin(921600);
     setupPtcs();
     setupSSRs();
     setupTmrFrost();
@@ -219,7 +218,6 @@ void loop(){
   if (client) {                             // if you get a client,
     boolean currentLineIsBlank = true;
     //Serial.println("Initialize new http client");           // print a message out the serial port
-    String currentLine = "";                // make a String to hold incoming data from the client
     while (client.connected()) {            // loop while the client's connected
       if (client.available()) {             // if there's bytes to read from the client,
         char c = client.read();             // read a byte, then
@@ -252,7 +250,7 @@ void loop(){
             }
 
             // example.. GET /ajax_temp&nocache=299105.2747379479 HTTP/1.1
-            else if (HTTP_req.indexOf("GET /ajax_chgsetpoint") > -1) {
+            else if ((HTTP_req.indexOf("GET /ajax_chgsetpoint") > -1) && HTTP_req.indexOf("_end")) {
                 client.println(httphdrstart);
                 client.println(httphdrxml);
                 client.println(httphdrkeep);
@@ -279,7 +277,7 @@ void loop(){
             }
 
             // example.. GET /ajax_chgctlmode_REMOTE_end&nocache=299105.2747379479 HTTP/1.1
-            else if (HTTP_req.indexOf("GET /ajax_chgctlmode") > -1) {
+            else if ((HTTP_req.indexOf("GET /ajax_chgctlmode") > -1) && HTTP_req.indexOf("_end") >-1 ){
                 client.println(httphdrstart);
                 client.println(httphdrxml);
                 client.println(httphdrkeep);
@@ -351,7 +349,7 @@ void loop(){
                         client.write(logo.read()); // send logo to client
                     }
                     logo.close();
-                    Serial.println("[WEBPG] GET Logo, DONE");
+                    Serial.println("[WEBPG] GET Logo UPLOADED TO BROWSER");
                     
                 }else{
                   Serial.println("[WEBPG] Logo Not Found!!!");
@@ -361,11 +359,11 @@ void loop(){
             else if (HTTP_req.indexOf("GET /favicon.ico") > -1){
                 client.println("HTTP/1.0 404 \r\n\n\n");
             }
-            else if (HTTP_req.indexOf("GET /gauge.min.js") > -1)
+            else if (HTTP_req.indexOf("GET /ajax.js") > -1)
             {
                 // send file
-                tmp_file = SD.open("/gauge.min.js");
-                Serial.println("[WEB PAGE] Rxd gauge.min.js\r\n");  
+                tmp_file = SD.open("/ajax.js");
+                Serial.println("[WEB PAGE] Rxd ajax.js\r\n");  
                 if (tmp_file) {
                    client.println(httphdrstart);
                    client.println(httphdrjs);
@@ -375,8 +373,9 @@ void loop(){
                         client.write(tmp_file.read()); // send web page to client
                     }
                     tmp_file.close();
+					Serial.println("[WEBPG] ajax.js UPLOADED TO BROWSER");
                 }else{
-                  Serial.println("[FILE] ERROR DID NOT OPEN gauge.min.js");
+                  Serial.println("[FILE] ERROR DID NOT OPEN ajax.js");
                   
                 }
             }
@@ -414,6 +413,7 @@ void loop(){
                         client.write(tmp_file.read()); // send web page to client
                     }
                     tmp_file.close();
+					Serial.println("[WEBPG] wifihvac.css UPLOADED TO BROWSER");
                 }else{
                   Serial.println("[FILE] ERROR DID NOT OPEN wifihvac.css");
                 }
@@ -468,7 +468,7 @@ void loop(){
           // a text character was received from client
           currentLineIsBlank = false;
       }
-      delay(1);      // give the web browser time to receive the data
+      //delay(1);      // give the web browser time to receive the data
     
     }//end if client connected
   } //end while loop 
@@ -721,12 +721,12 @@ void testFileIO(fs::FS &fs, const char * path){
     }
 
     // check for index.htm file
-    if (!SD.exists("/gauge.min.js")) {
-        Serial.println("ERROR - Can't find gauge.min.js file!");
-        return;  // can't find index file
-    }else{
+    //if (!SD.exists("/gauge.min.js")) {
+    //    Serial.println("ERROR - Can't find gauge.min.js file!");
+    //    return;  // can't find index file
+    //}else{
       //readFile(SD, "/gauge.min.js");   
-    }
+    //}
    // createDir(SD, "/mydir");
    //listDir(SD, "/", 0);
    // removeDir(SD, "/mydir");
