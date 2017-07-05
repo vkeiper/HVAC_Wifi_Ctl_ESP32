@@ -74,12 +74,25 @@ int value = 0;
 File html1;
 File logo;
 File tmp_file;
+File Datlog_file;
+
 //HVAC Vars
-//float an_condtemp,an_ambtemp,an_cnddegf,an_ambdegf;
-//int an_ch7raw,an_ch6raw;
 String  strTemp;
 String strDmd;
 String strFrost;
+uint32_t TmrCntFrost;
+
+struct s_timetype {
+	uint32_t time; //in seconds
+	uint32_t tm_secs;
+	uint32_t tm_mins;
+	uint32_t tm_hrs;
+	uint32_t tm_days;
+    uint32_t tm_yrs;
+	char str[64];
+};
+
+
 
 enum e_ctlmode{
   ECTLMD_OFF,
@@ -126,6 +139,7 @@ struct s_control{
 };
 
 s_control ctldata_s;
+s_timetype time_s;
 /*
  * This table represents the PTC map. Index0
  * indicates -40C and each index is 1 degree 
@@ -717,23 +731,35 @@ void testFileIO(fs::FS &fs, const char * path){
         Serial.println("ERROR - Can't find index.htm file!");
         return;  // can't find index file
     }else{
-      //readFile(SD, "/index.html");   
+      readFile(SD, "/index.html");   
     }
 
-    // check for index.htm file
-    //if (!SD.exists("/gauge.min.js")) {
-    //    Serial.println("ERROR - Can't find gauge.min.js file!");
-    //    return;  // can't find index file
-    //}else{
-      //readFile(SD, "/gauge.min.js");   
-    //}
-   // createDir(SD, "/mydir");
-   //listDir(SD, "/", 0);
+    // check for ajax.js file, web page cannot run w/o it
+    if (!SD.exists("/ajax.js")) {
+        Serial.println("ERROR - Can't find ajax.js file!");
+        return;  // can't find index file
+    }else{
+		readFile(SD, "/ajax.js");   
+    }
+   
+	// check for ajax.js file, web page cannot run w/o it
+	if (!SD.exists("/datalog/aclog.txt")) {
+		createDir(SD, "/datalog");
+		writeFile(SD, "/datalog/aclog.txt", "[CREATED] Created the Data Log for The HVAC Controller...\n");
+		listDir(SD, "/", 3);
+
+		Serial.println("ERROR - Can't find /datalog/aclog.txt file!");
+		return;  // can't find file
+	}
+	else {
+		readFile(SD, "/datalog/aclog.txt");
+		appendFile(SD, "/datalog/aclog.txt", "[REBOOTED] \n");
+	}
    // removeDir(SD, "/mydir");
    // listDir(SD, "/", 2);
-   //writeFile(SD, "/hello.txt", "Hello ");
-   //appendFile(SD, "/hello.txt", "World!\n");
    
+   
+
     //deleteFile(SD, "/foo.txt");
     //renameFile(SD, "/hello.txt", "/foo.txt");
     //readFile(SD, "/foo.txt");
@@ -856,6 +882,20 @@ void setupTmrFrost() {
   timerStart(tmrFrost);
 }
 
+void calc_uptime(uint32_t time)
+{
+	time_s.tm_secs = time % 60UL;
+	time /= 60UL;
+	time_s.tm_mins = time % 60UL;
+	time /= 60UL;
+	time_s.tm_hrs = time % 24UL;
+	time /= 24UL;
+	time_s.tm_days = time;
+
+	sprintf(time_s.str, "%2d DAYS %2d HRS %2d MINS %2d SECS ", time_s.tm_days, time_s.tm_hrs, time_s.tm_mins, time_s.tm_secs);
+	//Serial.println(time_s.str);
+}
+
 void chkTmrFrostSemi() {
   // If Timer has fired
   if (xSemaphoreTake(timerSemaphore, 0) == pdTRUE){
@@ -877,24 +917,23 @@ void chkTmrFrostSemi() {
     // Check for frozen condensor 
     FrostCheck();
     // Determine if AC fan & pump should be on
-    //SetAcMainAuxFan();
     SetAcState();
+	// increment timer execution count
+	TmrCntFrost++;
+	if (TmrCntFrost % 2 == 0) {
+		time_s.time++;
+		calc_uptime(time_s.time);
+	}
+	
+
+
   }
 }
+
 
 //--method to toggle pins for SSR control
 void FrostCheck(void)
 {  
-    //--last status for th pin passed in
-    //an_ch7raw = analogRead(pinCNDSRMON);
-    //an_ch6raw = analogRead(pinAMBMON);
-     
-    //an_condtemp = (float)ProcessPtc(4095,an_ch7raw,-6);
-    //an_ambtemp = (float)ProcessPtc(4095,an_ch6raw,-6);
-    
-    //an_ambdegf = an_condtemp* 9/5 + 32;
-    //an_cnddegf = an_ambtemp* 9/5 + 32;
-
     ctldata_s.cond_s.rdbraw = analogRead(pinCNDSRMON);
     ctldata_s.set1_s.rdbraw = analogRead(pinAMBMON);
     
@@ -957,7 +996,8 @@ enum E_ACSTATE{
 void SetAcState(void)
 {
     static E_ACSTATE state = EAC_INIT;
-    
+	String LogEntry = "";
+
     //-- read tstat demand for tstat demanded cool state
     if( digitalRead(pinTSTAT) == 0)
     {
@@ -1047,8 +1087,15 @@ void SetAcState(void)
                 (ctldata_s.set1_s.rdb >= ctldata_s.set1_s.dmd + ctldata_s.set1_s.rnghi && 
                 (digitalRead(pinACMAIN) == LOW))){
               digitalWrite(pinACMAIN,HIGH);
-              Serial.println("[AC STATE] REMOTE DMD PUMPON " +String(ctldata_s.set1_s.dmd) +" RDB " +String(ctldata_s.set1_s.rdb) +
-                " RNGLO " +String(ctldata_s.set1_s.rnglo) +" RNGH " +String(ctldata_s.set1_s.rnghi)); 
+			  LogEntry = String(time_s.str) + " [AC STATE] REMOTE DMD PUMPON " + String(ctldata_s.set1_s.dmd) + " RDB " + String(ctldata_s.set1_s.rdb) +
+				  " RNGLO " + String(ctldata_s.set1_s.rnglo) + " RNGH " + String(ctldata_s.set1_s.rnghi) +"\n";
+			  LogEntry.toCharArray(dbgstr, sizeof(dbgstr));
+			  Serial.println(dbgstr);
+			 // LOG pump cycle to SD card
+			  if (SD.exists("/datalog/aclog.txt")) {
+				  
+				  appendFile(SD, "/datalog/aclog.txt", dbgstr);
+			  }
             }
 
             //Test if pump should be turn off
@@ -1057,8 +1104,16 @@ void SetAcState(void)
                 (ctldata_s.set1_s.rdb <= ctldata_s.set1_s.dmd - ctldata_s.set1_s.rnglo && 
                 (digitalRead(pinACMAIN) == HIGH))){
               digitalWrite(pinACMAIN,LOW);
-              Serial.println("[AC STATE] REMOTE DMD PUMP OFF" +String(ctldata_s.set1_s.dmd) +" RDB " +String(ctldata_s.set1_s.rdb) +
-                " RNGLO " +String(ctldata_s.set1_s.rnglo) +" RNGH " +String(ctldata_s.set1_s.rnghi)); 
+			  LogEntry = String(time_s.str) + " [AC STATE] REMOTE DMD PUMPOFF " + String(ctldata_s.set1_s.dmd) + " RDB " + String(ctldata_s.set1_s.rdb) +
+				  " RNGLO " + String(ctldata_s.set1_s.rnglo) + " RNGH " + String(ctldata_s.set1_s.rnghi) + "\n";
+			  LogEntry.toCharArray(dbgstr, sizeof(dbgstr));
+			  Serial.println(dbgstr);
+			 
+			  // LOG pump cycle to SD card
+			  if (SD.exists("/datalog/aclog.txt")) {
+
+				  appendFile(SD, "/datalog/aclog.txt", dbgstr);
+			  }
             }   
             
         break;
