@@ -68,7 +68,7 @@ const char achCNDSRMON =  7;
 const char pinAMBMON   = 39;  //analog in (ambient room temp)
 const char achAMBMON   =  6;
 const char pinTSTAT    = 2;  //dig in
-const char pinAUXFAN   = 25;  //dig out
+const char pinAUXFAN   = 27;  //dig out
 const char pinACMAIN   = 26;  //dig out
 int value = 0;
 File html1;
@@ -165,13 +165,13 @@ static const uint16_t ptcbits[] = {993,992,989,987,985,983,980,977,974,971,
 
 void setup()
 {
-
-    ctldata_s.ctlmode_e = ECTLMD_OFF;
+	//start up in remote control tstat (web page) mode
+    ctldata_s.ctlmode_e = ECTLMD_REMOTE;
     ctldata_s.dmdmode_e = EDMDMD_NONE;
     ctldata_s.rmtmode_e = EDMDMD_NONE;
     ctldata_s.tstatmode_e = EDMDMD_NONE;
     
-    ctldata_s.set1_s.dmd = 75.00;
+    ctldata_s.set1_s.dmd = 66.00;
     ctldata_s.set1_s.rdb = 0.0;
     ctldata_s.set1_s.rnghi = 1;//dont turn on until its +1 degrees over demand
     ctldata_s.set1_s.rnglo = 3;// turnoff when 3 degrees under demand 
@@ -528,7 +528,7 @@ void setupPtcs()
 
 void setupSSRs()
 {
-  pinMode(pinTSTAT,INPUT);
+  //pinMode(pinTSTAT,INPUT);
   pinMode(pinAUXFAN,OUTPUT);
   pinMode(pinACMAIN,OUTPUT);
 
