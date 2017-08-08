@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta name="keywords" content="HTML,CSS,XML,JavaScript">
+<title>WiFi HVAC Controller</title>
+
+
+<link rel="stylesheet" href="wifihvac.css" type="text/css">
+<script src="./ajax.js"></script>
+<!--<script src="./gauge_qry.js"></script>-->
+</head>
+<body onload="GetXml()">
+<!--<img src="atdilogo.bmp" alt="ATDI Logo" style="width:290px;height:67px;">-->
+<h1>MBR HVAC Web Client</h1>
+<gauge1><canvas id="gauge_cnd" data-title="Condensor" data-units="°F" data-major-ticks="0 10 20 30 40 50 60 70 80 90 100 110" data-type="canv-gauge" data-min-value="0" data-max-value="110" data-onready="setInterval( function() { Gauge.Collection.get('gauge_cnd').setValue(an_CndTempRaw);},1000);"></canvas>
+</gauge1>
+<gauge2><canvas id="gauge_amb" data-title="Room" data-units="°F" data-major-ticks="0 10 20 30 40 50 60 70 80 90 100 110" data-type="canv-gauge" data-min-value="0" data-max-value="110" data-onready="setInterval( function() { Gauge.Collection.get('gauge_amb').setValue(an_AmbTempRaw);}, 1000);"></canvas>
+</gauge2>
+<p>MANUAL ON - SSR_AUXFAN &nbsp; <input style="background: rgb(0, 255, 0) none repeat scroll 0% 50%; -moz-background-clip: initial; -moz-background-origin: initial; -moz-background-inline-policy: initial;" value="OFF" onclick="colorchange('btnaux','_AUXSSR'); return false;" id="btnaux" type="button"> </p>
+<p>MANUAL ON - SSR_ACMAIN &nbsp; <input style="background: rgb(0, 255, 0) none repeat scroll 0% 50%; -moz-background-clip: initial; -moz-background-origin: initial; -moz-background-inline-policy: initial;" value="OFF" onclick="colorchange('btnacmn','_ACSSR'); return false;" id="btnacmn" type="button"> </p>
+<table> <!--style="width: 1259px; height: 237px;"> -->
+<tbody>
+<tr>
+</tr>
+<tr>
+</tr>
+<tr>
+<td style="text-align: left;">TSTAT Demand Monitor: <span id="dig_1">...</span> </td>
+</tr>
+<tr>
+<td style="text-align: left;">Condensor Fros Fault: <span id="dig_2">...</span> </td>
+</tr>
+<tr>
+<td style="text-align: left;">Condensor Temperature:
+<span id="an_1">...</span> </td>
+</tr>
+<tr>
+<td style="text-align: left;">Amb. Room Temperature:
+<span id="an_2">...</span> </td>
+</tr>
+<tr>
+<td style="text-align: left;">Software Demand Temp1:
+<span id="an_swset1">...</span> </td>
+</tr>
+<tr>
+	<td style="text-align: left;">Software Demand Temp2:
+		<span id="an_swset2">...</span> 
+	</td>
+</tr>
+<tr>
+	<td style="text-align: left;">Operating Mode:
+		<span id="dig_ACSTATE">...</span> 
+	</td>
+</tr>
+<tr>
+<td>
+<form id="txt_setpoint1" name="frmSetP1"><label> SW
+Set Point:<textarea class="textarea_sets" name="form_textsetpoints1" onfocus="LockSetPTextArea(this);" rows="1" cols="4">0.0</textarea> 
+	<input value="Send&gt;&gt;" onclick="SendSetPoint(); return false;" type="button"></label>
+</form>
+<p>Control Type:</p>
+<form action="" id="ctltypeForm">
+  <input type="radio" name="ctltype" onchange="ctlradiochanged(this);" value= "ERROR"> ERROR<br>
+  <input type="radio" name="ctltype" onchange="ctlradiochanged(this);" value= "TSTAT"> TSTAT<br>
+  <input type="radio" name="ctltype" onchange="ctlradiochanged(this);" value= "REMOTE"> WEBSRVR<br>
+  <input type="radio" name="ctltype" onchange="ctlradiochanged(this);" value= "MANUAL"> MANUAL<br>
+  <input type="radio" name="ctltype" onchange="ctlradiochanged(this);" value= "OFF" checked="checked"> -OFF-<br>
+</form>
+
+</td>
+</tr>
+</tbody>
+</table>
+<p>WebPage Version: v.0.2 20170807_1752 Author: Vincent Keiper </p>
+</body></html>

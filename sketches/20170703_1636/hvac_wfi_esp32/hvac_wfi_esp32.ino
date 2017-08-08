@@ -34,9 +34,11 @@ For esp32
 //#define DBGWEBPG4
 //#define DBGACSTATE1
 
+#define SDLOGON
+//#define RDFILESATBOOT
 
 //Application Version
-const char* sAppVer     = "v0.1 20170702_1716_VK HVAC_Controller_ESP32_Wifi";
+const char* sAppVer     = "v0.2 201700807_1958_VK HVAC_Controller_ESP32_Wifi";
 #define HOME
 #ifdef HOME
 //Home Wifi
@@ -173,14 +175,14 @@ void setup()
     
     ctldata_s.set1_s.dmd = 66.00;
     ctldata_s.set1_s.rdb = 0.0;
-    ctldata_s.set1_s.rnghi = 1;//dont turn on until its +1 degrees over demand
+    ctldata_s.set1_s.rnghi = 0;//dont turn on until its +1 degrees over demand
     ctldata_s.set1_s.rnglo = 3;// turnoff when 3 degrees under demand 
     ctldata_s.set2_s.dmd = 0.0;//indicate set point 2 is not enabled
 
     ctldata_s.cond_s.dmd = 32.00;
     ctldata_s.cond_s.rdb = 0.0;
-    ctldata_s.cond_s.rnghi = 5;//dont turn on until its +15 degrees over demand
-    ctldata_s.cond_s.rnglo = 0;// turnoff when 3 degrees under demand 
+    ctldata_s.cond_s.rnghi = 5;//dont turn on until its +5 degrees over demand
+    ctldata_s.cond_s.rnglo = 0;// turnoff when 0 degrees under demand 
     ctldata_s.cond_s.dmd = 0.0;//indicate set point 2 is not enabled
 
     ctldata_s.manstate_s.acpump = false;
@@ -620,7 +622,10 @@ void writeFile(fs::FS &fs, const char * path, const char * message){
 }
 
 void appendFile(fs::FS &fs, const char * path, const char * message){
-    Serial.printf("Appending to file: %s\n", path);
+#ifdef SDLOGON
+
+
+	Serial.printf("Appending to file: %s\n", path);
 
     File file = fs.open(path, FILE_APPEND);
     if(!file){
@@ -632,6 +637,9 @@ void appendFile(fs::FS &fs, const char * path, const char * message){
     } else {
         Serial.println("Append failed");
     }
+#else
+	Serial.printf("SDLOG OFF --- NOT Appending to file: %s\n", path);
+#endif // SDLOGON
 }
 
 void renameFile(fs::FS &fs, const char * path1, const char * path2){
@@ -731,7 +739,9 @@ void testFileIO(fs::FS &fs, const char * path){
         Serial.println("ERROR - Can't find index.htm file!");
         return;  // can't find index file
     }else{
-      readFile(SD, "/index.html");   
+#ifdef RDFILESATBOOT
+			readFile(SD, "/index.html");   
+#endif
     }
 
     // check for ajax.js file, web page cannot run w/o it
@@ -739,7 +749,9 @@ void testFileIO(fs::FS &fs, const char * path){
         Serial.println("ERROR - Can't find ajax.js file!");
         return;  // can't find index file
     }else{
+#ifdef RDFILESATBOOT
 		readFile(SD, "/ajax.js");   
+#endif
     }
    
 	// check for ajax.js file, web page cannot run w/o it
@@ -752,7 +764,9 @@ void testFileIO(fs::FS &fs, const char * path){
 		return;  // can't find file
 	}
 	else {
+#ifdef RDFILESATBOOT
 		readFile(SD, "/datalog/aclog.txt");
+#endif
 		appendFile(SD, "/datalog/aclog.txt", "[REBOOTED] \n");
 	}
    // removeDir(SD, "/mydir");
